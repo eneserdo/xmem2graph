@@ -1,7 +1,7 @@
 # xmem2graph
 
-ritm -> gets the initial mask
+[RITM](https://github.com/saic-vul/ritm_interactive_segmentation) -> gets the initial mask
 
-xmem -> tracks the selected objects
+[XMem](https://github.com/hkchengrex/XMem/) -> tracks the selected objects
 
 Then the code creates a relation graph

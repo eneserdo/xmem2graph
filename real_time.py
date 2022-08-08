@@ -21,7 +21,7 @@ from ros_capture import RosRun, shift, getBlended
 
 
 
-def getSingleCenterFromMask(pred):
+def getSingleCenterFromMask(pred, depth):
     """
         If pred has SINGLE segments
     """
@@ -30,20 +30,20 @@ def getSingleCenterFromMask(pred):
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
 
-    return (cX, cY)
+    return (cY, cX, depth[cY, cX][0])
 
 
-def getOrderedCenters(pred, display=False):
+def getOrderedCenters(pred, depth, display=False):
 
     ids = np.unique(pred)[1:]
     centers = {}
 
     for id in ids:
-        centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype))
+        centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
         if display:
-            cv2.circle(pred, (centers[id][0], centers[id][1]), 3, 255, -1)
-            cv2.putText(pred, f"{centers[id]}", (centers[id][0] - 1,
-                        centers[id][1] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+            cv2.circle(pred, (centers[id][1], centers[id][0]), 3, 255, -1)
+            cv2.putText(pred, f"{centers[id]}", (centers[id][1] - 1,
+                        centers[id][0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
 
     return centers
 
@@ -136,8 +136,8 @@ def main():
                 run_xmem=True
                 start=start+(stop_mask-start_mask)
             
-            # blended=getBlended(img1, img2)
-            # blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
+            blended=getBlended(img1, img2)
+            blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
             if record_frames:
                 raise NotImplementedError
                 # i=i+1
@@ -151,7 +151,7 @@ def main():
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
                 
-                print("Centers:", getOrderedCenters(prediction, display=True))
+                print("Centers:", getOrderedCenters(prediction, img2, display=True))
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
                 visualization = cv2.resize(visualization, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
@@ -162,9 +162,9 @@ def main():
             
             time_total=perf_counter()-start
             print("fps:", np.round(j/time_total, 2))
-            # blended = cv2.putText(blended, f"FPS: {np.round(j/time_total, 2)}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-            # blended = cv2.putText(blended, f"Total: {np.round(time_total/j, 3)} s", (30, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-            # cv2.imshow('blended', blended)
+            blended = cv2.putText(blended, f"FPS: {np.round(j/time_total, 2)}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            blended = cv2.putText(blended, f"Total: {np.round(time_total/j, 3)} s", (30, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            cv2.imshow('blended', blended)
             key = cv2.waitKey(1) & 0xFF
             
             if key  == ord('q'): 
@@ -199,7 +199,7 @@ def main():
 
         if os.path.exists("./ritm_interactive_segmentation/initial.png"):
             os.remove("./ritm_interactive_segmentation/initial.png")
-            
+
         if os.path.exists("./ritm_interactive_segmentation/mask.png"):
             os.remove("./ritm_interactive_segmentation/mask.png")
 

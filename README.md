@@ -30,4 +30,8 @@ conda install -c conda-forge ros-rospy rospkg
 # To get pre-trained models
 ./download.sh  
 ```
+# To run 
 
+```
+python real_time.py
+```

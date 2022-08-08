@@ -4,6 +4,7 @@ from tkinter import messagebox, filedialog, ttk
 import cv2
 import numpy as np
 from PIL import Image
+import os
 
 from interactive_demo.canvas import CanvasImage
 from interactive_demo.controller import InteractiveController
@@ -44,6 +45,14 @@ class InteractiveDemoApp(ttk.Frame):
         self.state['predictor_params']['net_clicks_limit'].trace(mode='w', callback=self._change_brs_mode)
         self.state['lbfgs_max_iters'].trace(mode='w', callback=self._change_brs_mode)
         self._change_brs_mode()
+
+        # Set initial image 
+        if os.path.exists("./initial.png"):
+            if self._check_entry(self):            
+                image = cv2.cvtColor(cv2.imread("initial.png"), cv2.COLOR_BGR2RGB)
+                self.controller.set_image(image)
+                self.save_mask_btn.configure(state=tk.NORMAL)
+                self.load_mask_btn.configure(state=tk.NORMAL)
 
     def _init_state(self):
         self.state = {

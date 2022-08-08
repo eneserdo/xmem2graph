@@ -197,5 +197,12 @@ def main():
                 shift_y=0
                 shift_x=0
 
+        if os.path.exists("./ritm_interactive_segmentation/initial.png"):
+            os.remove("./ritm_interactive_segmentation/initial.png")
+            
+        if os.path.exists("./ritm_interactive_segmentation/mask.png"):
+            os.remove("./ritm_interactive_segmentation/mask.png")
+
+
 if __name__ == '__main__':
     main()

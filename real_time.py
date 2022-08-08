@@ -1,155 +1,201 @@
-## Version 2
-
 import os
-from os import path
-from argparse import ArgumentParser
-import shutil
-
+import sys
+import cv2
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import numpy as np
 from PIL import Image
+from time import perf_counter
+import subprocess
 
+sys.path.append("./XMem")
 from inference.data.test_datasets import LongTestDataset, DAVISTestDataset, YouTubeVOSTestDataset
 from inference.data.mask_mapper import MaskMapper
 from model.network import XMem
 from inference.inference_core import InferenceCore
+from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
 
-from progressbar import progressbar
+from ros_capture import RosRun, shift, getBlended
 
-torch.set_grad_enabled(False)
 
-# default configuration
-config = {
-    'top_k': 30,
-    'mem_every': 5,
-    'deep_update_every': -1,
-    'enable_long_term': True,
-    'enable_long_term_count_usage': True,
-    'num_prototypes': 128,
-    'min_mid_term_frames': 5,
-    'max_mid_term_frames': 10,
-    'max_long_term_elements': 10000,
-}
 
-device="cuda"
-
-network = XMem(config, './saves/XMem.pth').eval().to(device)
-
-video_name = 'a_output.mp4'
-# mask_name = 'a_mask.png'
 
 def getSingleCenterFromMask(pred):
     """
         If pred has SINGLE segments
     """
-    ret,thresh = cv2.threshold(pred*20,5,255,0)
+    ret, thresh = cv2.threshold(pred*20, 5, 255, 0)
     M = cv2.moments(thresh)
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
 
-    return (cX, cY)  
+    return (cX, cY)
+
 
 def getOrderedCenters(pred, display=False):
 
-    ids=np.unique(pred)[1:]
-    centers={}
+    ids = np.unique(pred)[1:]
+    centers = {}
 
     for id in ids:
-        centers[id]=getSingleCenterFromMask((pred==id).astype(pred.dtype))
+        centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype))
         if display:
             cv2.circle(pred, (centers[id][0], centers[id][1]), 3, 255, -1)
-            cv2.putText(pred, f"{centers[id]}", (centers[id][0] - 1, centers[id][1] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+            cv2.putText(pred, f"{centers[id]}", (centers[id][0] - 1,
+                        centers[id][1] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
 
     return centers
-        
 
 
 def adapt_mask(mask_name):
     mask_image = np.array(Image.open(mask_name))
-    uniques=np.unique(mask_image)
+    uniques = np.unique(mask_image)
     print(uniques)
 
     num_obj = len(uniques) - 1
 
-    new_mask=np.zeros_like(mask_image).astype(np.int64)
+    new_mask = np.zeros_like(mask_image).astype(np.int64)
 
     for i, m in enumerate(uniques):
-        new_mask+=(mask_image==m)*i
+        new_mask += (mask_image == m)*i
 
-    mask_image=new_mask.astype(np.uint8).copy()
+    mask_image = new_mask.astype(np.uint8).copy()
 
     print(np.unique(mask_image))
     num_obj = len(np.unique(mask_image)) - 1
     return num_obj, mask_image
 
 
-num_objects, mask= adapt_mask('a_mask.png')
-# import os
-# os.mkdir("results")
+def main():
+    torch.set_grad_enabled(False)
 
+    # default configuration
+    config = {
+        'top_k': 30,
+        'mem_every': 5,
+        'deep_update_every': -1,
+        'enable_long_term': True,
+        'enable_long_term_count_usage': True,
+        'num_prototypes': 128,
+        'min_mid_term_frames': 5,
+        'max_mid_term_frames': 10,
+        'max_long_term_elements': 10000,
+    }
 
-import cv2
-from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
-from time import perf_counter
+    device = "cuda"
 
-torch.cuda.empty_cache()
+    print("CUDA version: ",torch.version.cuda)
+    network = XMem(config, './XMem/saves/XMem.pth').eval().to(device)
 
-processor = InferenceCore(network, config=config)
-processor.set_all_labels(range(1, num_objects+1)) # consecutive labels
-cap = cv2.VideoCapture(video_name)
+    torch.cuda.empty_cache()
 
-# You can change these two numbers
-# frames_to_propagate = 200
-visualize_every = 50
-avr_time=0
-current_frame_index = 0
+    rosrunner = RosRun("asus")
+    shift_x=0
+    shift_y=0
+    set_mask=False
+    record_frames=False
+    run_xmem=False
+    i=0
+    j=0
+        
 
+    with torch.cuda.amp.autocast(enabled=True):
 
-with torch.cuda.amp.autocast(enabled=True):
-    while (cap.isOpened()):
+        for temp_img1, temp_img2 in rosrunner.frameGenerator():
+            if j==0:
+                start=perf_counter()
             
-            start=perf_counter()
-            
-            # load frame-by-frame
-            _, frame = cap.read()
-            if frame is None:
+            if temp_img1 is None:
                 break
 
-            # convert numpy array to pytorch tensor format
-            frame_torch, _ = image_to_torch(frame, device=device)
-            if current_frame_index == 0:
-                # initialize with the mask
+            print("="*50)
+            j=j+1
+            
+            img1=shift((temp_img1[...,::-1]).copy(), shift_x, shift_y)
+            img2=shift(temp_img2, -shift_x, -shift_y)
+
+
+            if set_mask:
+                print("Wait for the interactive segmentation screen")
+                start_mask=perf_counter() 
+                set_mask=False
+                cv2.imwrite("./ritm_interactive_segmentation/initial.png", img1)
+                subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
+                stop_mask=perf_counter()
+                num_objects, mask = adapt_mask('./ritm_interactive_segmentation/mask.png')
+                processor = InferenceCore(network, config=config)
+                processor.set_all_labels(range(1, num_objects+1)) # consecutive labels
+                
+                frame_torch, _ = image_to_torch(img1, device=device) # frame:=img1
                 mask_torch = index_numpy_to_one_hot_torch(mask, num_objects+1).to(device)
-
-                # the background mask is not fed into the model
                 prediction = processor.step(frame_torch, mask_torch[1:])
-            else:
-                # propagate only
+                prediction = torch_prob_to_numpy_mask(prediction)
+                visualization = overlay_davis(img1, prediction)
+                cv2.imshow("vis", visualization)
+                run_xmem=True
+                start=start+(stop_mask-start_mask)
+            
+            # blended=getBlended(img1, img2)
+            # blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
+            if record_frames:
+                raise NotImplementedError
+                # i=i+1
+                # print("Recording: True")
+                # cv2.imwrite(os.path.join(color_dir, f"color_{i:0>6}.png"), img1)
+                # cv2.imwrite(os.path.join(depth_dir, f"depth_{i:0>6}.png"), img2)
+
+
+            if run_xmem:
+                frame_torch, _ = image_to_torch(img1, device=device)
                 prediction = processor.step(frame_torch)
+                prediction = torch_prob_to_numpy_mask(prediction)
+                
+                print("Centers:", getOrderedCenters(prediction, display=True))
+                
+                visualization = overlay_davis(img1, prediction)  # frame:=img1
+                visualization = cv2.resize(visualization, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
+                cv2.imshow("vis", visualization)
+            
+            cv2.imshow('image2', img2*5)
+            cv2.imshow('image1', img1)
+            
+            time_total=perf_counter()-start
+            print("fps:", np.round(j/time_total, 2))
+            # blended = cv2.putText(blended, f"FPS: {np.round(j/time_total, 2)}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            # blended = cv2.putText(blended, f"Total: {np.round(time_total/j, 3)} s", (30, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            # cv2.imshow('blended', blended)
+            key = cv2.waitKey(1) & 0xFF
+            
+            if key  == ord('q'): 
+                break 
 
-            # argmax, convert to numpy
-            prediction = torch_prob_to_numpy_mask(prediction)
-            visualization = overlay_davis(frame, prediction)
+            if key==ord('d'):
+                if shift_x<160:
+                    shift_x=shift_x+1
+            
+            if key==ord('a'):
+                if shift_x>-160:
+                    shift_x=shift_x-1
+                    
+            if key==ord('s'):
+                if shift_y<30:
+                    shift_y=shift_y+1
+                
+            if key==ord('w'):
+                if shift_y>-30:
+                    shift_y=shift_y-1
+            
+            if key==ord('r'):
+                record_frames = not record_frames
+                print(3*"Start/Stop\n")
 
-            # if current_frame_index>visualize_every:
-            #     break
+            if key==ord('m'):
+                set_mask = True
 
-            stop=perf_counter()
+            if key==ord('t'):
+                shift_y=0
+                shift_x=0
 
-            avr_time=avr_time+stop-start
-
-            # cv2.imwrite(f"results/res_{current_frame_index:0>6}.png",visualization)
-
-            cv2.imshow("vis", visualization)
-            cv2.waitKey(1)
-
-            # if current_frame_index % visualize_every == 0:
-            #   print(f"Frame:{current_frame_index} Total:{np.round(stop-start, 3)}")
-            #   visualization = overlay_davis(frame, prediction)
-            # display(Image.fromarray(visualization))
-
-
-            current_frame_index += 1
-
+if __name__ == '__main__':
+    main()

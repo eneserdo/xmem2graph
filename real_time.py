@@ -17,7 +17,7 @@ from inference.inference_core import InferenceCore
 from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
 
 from ros_capture import RosRun, shift, getBlended
-
+from grapher import getGraph
 
 
 
@@ -42,8 +42,7 @@ def getOrderedCenters(pred, depth, display=False):
         centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
         if display:
             cv2.circle(pred, (centers[id][1], centers[id][0]), 3, 255, -1)
-            cv2.putText(pred, f"{centers[id]}", (centers[id][1] - 1,
-                        centers[id][0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+            cv2.putText(pred, f"{centers[id]}", (centers[id][1] - 1, centers[id][0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
 
     return centers
 
@@ -66,8 +65,11 @@ def adapt_mask(mask_name):
     num_obj = len(np.unique(mask_image)) - 1
     return num_obj, mask_image
 
+def nothing(x):
+    pass
 
-def main():
+
+def main(argv):
     torch.set_grad_enabled(False)
 
     # default configuration
@@ -96,9 +98,12 @@ def main():
     set_mask=False
     record_frames=False
     run_xmem=False
+    show_blended=False
+    graph_show_labels=True
     i=0
     j=0
-        
+    threshold=100
+    
 
     with torch.cuda.amp.autocast(enabled=True):
 
@@ -117,6 +122,7 @@ def main():
 
 
             if set_mask:
+                cv2.destroyAllWindows()
                 print("Wait for the interactive segmentation screen")
                 start_mask=perf_counter() 
                 set_mask=False
@@ -134,10 +140,14 @@ def main():
                 visualization = overlay_davis(img1, prediction)
                 cv2.imshow("vis", visualization)
                 run_xmem=True
+                cv2.createTrackbar('threshold','vis',0,1000,nothing)
+
                 start=start+(stop_mask-start_mask)
             
-            blended=getBlended(img1, img2)
-            blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
+            if show_blended:
+                blended=getBlended(img1, img2)
+                blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
+        
             if record_frames:
                 raise NotImplementedError
                 # i=i+1
@@ -145,26 +155,41 @@ def main():
                 # cv2.imwrite(os.path.join(color_dir, f"color_{i:0>6}.png"), img1)
                 # cv2.imwrite(os.path.join(depth_dir, f"depth_{i:0>6}.png"), img2)
 
-
+            
             if run_xmem:
                 frame_torch, _ = image_to_torch(img1, device=device)
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
+                centers=getOrderedCenters(prediction, img2, display=True)
+                print("Centers:", centers)
+
                 
-                print("Centers:", getOrderedCenters(prediction, img2, display=True))
+                threshold = cv2.getTrackbarPos('threshold','vis')
+                graphImage=getGraph(centers, prediction, threshold, graph_show_labels)
+                    
+
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
                 visualization = cv2.resize(visualization, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
+                graphImage = cv2.resize(graphImage, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
+
+
+                cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
-            
-            cv2.imshow('image2', img2*5)
-            cv2.imshow('image1', img1)
+            else:
+                cv2.imshow('image2', img2*5)
+                cv2.imshow('image1', img1)
             
             time_total=perf_counter()-start
             print("fps:", np.round(j/time_total, 2))
-            blended = cv2.putText(blended, f"FPS: {np.round(j/time_total, 2)}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-            blended = cv2.putText(blended, f"Total: {np.round(time_total/j, 3)} s", (30, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-            cv2.imshow('blended', blended)
+
+            if show_blended:
+                blended = cv2.putText(blended, f"FPS: {np.round(j/time_total, 2)}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                blended = cv2.putText(blended, f"Total: {np.round(time_total/j, 3)} s", (30, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                cv2.imshow('blended', blended)
+            
+            
+            
             key = cv2.waitKey(1) & 0xFF
             
             if key  == ord('q'): 
@@ -188,21 +213,28 @@ def main():
             
             if key==ord('r'):
                 record_frames = not record_frames
-                print(3*"Start/Stop\n")
 
             if key==ord('m'):
                 set_mask = True
+            
+            if key==ord('b'):
+                show_blended = not show_blended
+
+            if key==ord('l'):
+                graph_show_labels = not graph_show_labels
+
+                graph_show_labels
 
             if key==ord('t'):
                 shift_y=0
                 shift_x=0
 
-        if os.path.exists("./ritm_interactive_segmentation/initial.png"):
-            os.remove("./ritm_interactive_segmentation/initial.png")
+        # if os.path.exists("./ritm_interactive_segmentation/initial.png"):
+        #     os.remove("./ritm_interactive_segmentation/initial.png")
 
-        if os.path.exists("./ritm_interactive_segmentation/mask.png"):
-            os.remove("./ritm_interactive_segmentation/mask.png")
+        # if os.path.exists("./ritm_interactive_segmentation/mask.png"):
+        #     os.remove("./ritm_interactive_segmentation/mask.png")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)

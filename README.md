@@ -5,3 +5,19 @@
 [XMem](https://github.com/hkchengrex/XMem/) -> tracks the selected objects
 
 Then the code creates a relation graph
+
+
+## Setting up the environment
+
+```
+conda create -n x2g python=3.8
+conda activate x2g
+
+conda install -c conda-forge cudatoolkit=11.3 cudnn=8.4.1
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+pip install -r requirements.txt
+
+./download.sh  # To get pre-trained models
+```
+

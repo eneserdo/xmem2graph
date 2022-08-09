@@ -24,7 +24,7 @@ def getGraph(centers, mask, threshold, show_labels=True):
 
     if show_labels:
         # graphImage=mask*30
-        graphImage = cv2.threshold(mask*20, 5, 255, cv.THRESH_BINARY)
+        graphImage = cv2.threshold(mask*20, 5, 255, cv2.THRESH_BINARY)
     else:
         graphImage=np.zeros_like(mask)
 

@@ -117,7 +117,7 @@ def main(argv):
             print("="*50)
             j=j+1
             
-            img1=shift((temp_img1[...,::-1]).copy(), shift_x, shift_y)
+            img1=shift((temp_img1).copy(), shift_x, shift_y)
             img2=shift(temp_img2, -shift_x, -shift_y)
 
 

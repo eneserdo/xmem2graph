@@ -10,6 +10,10 @@ import cv2
 
 class RosRun:
     def __init__(self, camera="asus"):
+        """
+        Example Usage:
+        
+        """
 
         if camera=="asus":
             self.img_topic1 = "/camera/rgb/image_rect_color"

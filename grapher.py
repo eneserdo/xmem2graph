@@ -2,9 +2,22 @@ import cv2
 import numpy as np
 from math import sqrt
 
-
 def dist(c1, c2):
     return sqrt(sum([(c1[i]-c2[i])**2 for i in range(3)]))
+
+def movingAverage(centers, beta=0.9):
+    pass
+
+class GraphDrawer:
+    __init__(self):
+    self.centers_queue=[]
+    
+    def _push(self, centers):
+        if
+        self.centers_queue.append(centers)
+        pass
+    def getGraph(self):
+
 
 def getGraph(centers, mask, threshold, show_labels=True):
     obj_ids=centers.keys()
@@ -16,9 +29,6 @@ def getGraph(centers, mask, threshold, show_labels=True):
     
     max_distance=sqrt(mask.shape[1]**2+mask.shape[0]**2+400**2)
     
-    
-
-
     for first_id in obj_ids:
         first_center=centers[first_id]
 
@@ -42,8 +52,3 @@ def getGraph(centers, mask, threshold, show_labels=True):
         cv2.putText(graphImage, f"{_id}", (center[1] - 1, center[0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
 
     return graphImage
-        
-
-    
-
-    

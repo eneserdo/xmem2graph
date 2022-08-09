@@ -6,3 +6,5 @@ pretrained_models
 *.so
 *.ipynb_checkpoints*
 *.json
+mask.png
+initial.png

@@ -45,7 +45,7 @@ def getGraph(centers, mask, threshold, show_labels=True):
 
             if threshold<distance:
                 cv2.line(graphImage, (first_center[1], first_center[0]), (second_center[1], second_center[0]), distance, 2)
-                cv2.putText(graphImage, distance, ((first_center[1]-second_center[1])//2, (first_center[0]-second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+                cv2.putText(graphImage, f"{distance}", ((first_center[1]-second_center[1])//2, (first_center[0]-second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
     
     graphImage=cv2.applyColorMap(graphImage, cv2.COLORMAP_OCEAN)
     

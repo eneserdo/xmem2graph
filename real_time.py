@@ -17,7 +17,7 @@ from inference.inference_core import InferenceCore
 from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
 
 from ros_capture import RosRun, shift, getBlended
-from grapher import getGraph
+from grapher import GraphDrawer
 
 
 
@@ -30,7 +30,7 @@ def getSingleCenterFromMask(pred, depth):
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
 
-    return (cY, cX, depth[cY, cX][0])
+    return np.array([cY, cX, depth[cY, cX][0]])
 
 
 def getOrderedCenters(pred, depth, display=False):
@@ -92,10 +92,18 @@ def main(argv):
 
     torch.cuda.empty_cache()
 
+    set_mask=False
+    is_demo=False
+    try:
+        if argv[1]=="demo":
+            set_mask=True
+            is_demo=True 
+    except IndexError:
+        pass
+
     rosrunner = RosRun("asus")
     shift_x=0
     shift_y=0
-    set_mask=False
     record_frames=False
     run_xmem=False
     show_blended=False
@@ -126,9 +134,12 @@ def main(argv):
                 print("Wait for the interactive segmentation screen")
                 start_mask=perf_counter() 
                 set_mask=False
-                cv2.imwrite("./ritm_interactive_segmentation/initial.png", img1)
-                subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
+
+                if not is_demo:
+                    cv2.imwrite("./ritm_interactive_segmentation/initial.png", img1)
+                    subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
                 stop_mask=perf_counter()
+
                 num_objects, mask = adapt_mask('./ritm_interactive_segmentation/mask.png')
                 processor = InferenceCore(network, config=config)
                 processor.set_all_labels(range(1, num_objects+1)) # consecutive labels
@@ -142,6 +153,8 @@ def main(argv):
                 cv2.namedWindow("graphImage")
                 cv2.createTrackbar('threshold','graphImage',50,500,nothing)
                 run_xmem=True
+
+                graphDrawer=GraphDrawer(num_objects,8)
 
                 start=start+(stop_mask-start_mask)
             
@@ -167,7 +180,8 @@ def main(argv):
                 threshold = cv2.getTrackbarPos('threshold','graphImage')
                 
                 start_graph=perf_counter()
-                graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
+                # graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
+                graphImage=graphDrawer.getGraph(centers, prediction.copy(), threshold, graph_show_labels)
                 print("Graph time: ", perf_counter()-start_graph)
 
                 

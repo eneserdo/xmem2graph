@@ -160,12 +160,12 @@ def main(argv):
                 frame_torch, _ = image_to_torch(img1, device=device)
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
-                centers=getOrderedCenters(prediction, img2, display=True)
+                centers=getOrderedCenters(prediction, img2, display=False)
                 print("Centers:", centers)
 
                 
                 threshold = cv2.getTrackbarPos('threshold','vis')
-                graphImage=getGraph(centers, prediction, threshold, graph_show_labels)
+                graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
                     
 
                 

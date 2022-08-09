@@ -30,6 +30,13 @@ conda install -c conda-forge ros-rospy rospkg
 # To get pre-trained models
 ./download.sh  
 ```
+
+OR use yml file:
+
+```
+conda env create -f environment.yml
+```
+
 # To run 
 
 ```

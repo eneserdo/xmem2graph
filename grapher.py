@@ -9,24 +9,27 @@ def movingAverage(centers, beta=0.9):
     pass
 
 class GraphDrawer:
-    __init__(self):
-    self.centers_queue=[]
+    def __init__(self):
+        self.centers_queue=[]
     
     def _push(self, centers):
-        if
+    
         self.centers_queue.append(centers)
-        pass
     def getGraph(self):
+        pass
 
 
 def getGraph(centers, mask, threshold, show_labels=True):
     obj_ids=centers.keys()
 
     if show_labels:
-        graphImage=mask*30
+        # graphImage=mask*30
+        graphImage = cv2.threshold(mask*20, 5, 255, cv.THRESH_BINARY)
     else:
         graphImage=np.zeros_like(mask)
-    
+
+
+
     max_distance=sqrt(mask.shape[1]**2+mask.shape[0]**2+400**2)
     
     for first_id in obj_ids:
@@ -42,9 +45,10 @@ def getGraph(centers, mask, threshold, show_labels=True):
 
             if threshold<distance:
                 cv2.line(graphImage, (first_center[1], first_center[0]), (second_center[1], second_center[0]), distance, 2)
+                cv2.putText(graphImage, distance, ((first_center[1]-second_center[1])//2, (first_center[0]-second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
     
-
-    graphImage=cv2.applyColorMap(graphImage, cv2.COLORMAP_RAINBOW)
+    graphImage=cv2.applyColorMap(graphImage, cv2.COLORMAP_OCEAN)
+    
 
     for _id in obj_ids:
         center=centers[_id]

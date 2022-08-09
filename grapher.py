@@ -105,8 +105,8 @@ class GraphDrawer:
             try:
                 curr_center=curr_centers[_id]            
                 cv2.circle(graphImage, (curr_center[1], curr_center[0]), 3, (20,255,10), -1)
-            except IndexError:
-                print("IndexError passed")
+            except KeyError:
+                print("KeyError passed")
             cv2.putText(graphImage, f"{center}", (center[1] - 1, center[0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,204), 1)
 
         return graphImage

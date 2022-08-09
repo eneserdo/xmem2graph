@@ -103,7 +103,7 @@ def main(argv):
     i=0
     j=0
     threshold=100
-    
+
 
     with torch.cuda.amp.autocast(enabled=True):
 
@@ -139,8 +139,9 @@ def main(argv):
                 prediction = torch_prob_to_numpy_mask(prediction)
                 visualization = overlay_davis(img1, prediction)
                 cv2.imshow("vis", visualization)
+                cv2.namedWindow("graphImage")
+                cv2.createTrackbar('threshold','graphImage',50,500,nothing)
                 run_xmem=True
-                cv2.createTrackbar('threshold','vis',0,1000,nothing)
 
                 start=start+(stop_mask-start_mask)
             
@@ -163,10 +164,11 @@ def main(argv):
                 centers=getOrderedCenters(prediction, img2, display=False)
                 print("Centers:", centers)
 
+                threshold = cv2.getTrackbarPos('threshold','graphImage')
                 
-                threshold = cv2.getTrackbarPos('threshold','vis')
+                start_graph=perf_counter()
                 graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
-                    
+                print("Graph time: ", perf_counter()-start_graph)
 
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1

@@ -154,7 +154,7 @@ def main(argv):
                 cv2.createTrackbar('threshold','graphImage',50,500,nothing)
                 run_xmem=True
 
-                graphDrawer=GraphDrawer(num_objects,8)
+                graphDrawer=GraphDrawer(num_obj=num_objects, queue_length=1, beta=0.95, avr_on=False)
 
                 start=start+(stop_mask-start_mask)
             
@@ -181,13 +181,13 @@ def main(argv):
                 
                 start_graph=perf_counter()
                 # graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
-                graphImage=graphDrawer.getGraph(centers, prediction.copy(), threshold, graph_show_labels)
+                graphImage=graphDrawer.getGraph(centers, prediction.copy(), threshold, depth=img2, show_labels=graph_show_labels)
                 print("Graph time: ", perf_counter()-start_graph)
 
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
-                visualization = cv2.resize(visualization, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
-                graphImage = cv2.resize(graphImage, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
+                visualization = cv2.resize(visualization, None, fx=1.75, fy=1.75, interpolation=cv2.INTER_AREA)
+                graphImage = cv2.resize(graphImage, None, fx=1.75, fy=1.75, interpolation=cv2.INTER_AREA)
 
 
                 cv2.imshow("graphImage", graphImage)

@@ -1,3 +1,4 @@
 __pycache__/
 sil.py
 *.py[cod]
+.vscode

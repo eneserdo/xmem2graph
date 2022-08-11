@@ -18,7 +18,7 @@ def draw_circle(event,x,y,flags,param):
 
         A=np.array([[1/525.0, 0 -64/105.0],[0, 1/525.0, -16/35],[0,0,1]])
 
-        print(img2[int(y),int(x)]/(A@np.array([[x], [y], [1]])[2]))	
+        print(img2[int(y),int(x)]/((A@np.array([[x], [y], [1]]))[2]))	
         
 
 rosrunner = RosRun("asus")

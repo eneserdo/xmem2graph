@@ -41,9 +41,6 @@ class RosRun:
 
     def imgCallback2(self, data):
         self.temp_img2 = np.frombuffer(data.data, dtype=np.uint16).reshape(data.height, data.width, -1)    
-        print(data.encoding)
-        print(data.step)
-        print(data.header.frame_id)
         self.img_ready2 = True
 
 

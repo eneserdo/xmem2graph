@@ -103,7 +103,7 @@ def main(argv):
 
 
     device="cuda"
-    
+
     print("CUDA version: ",torch.version.cuda)
     network = XMem(config, './XMem/saves/XMem.pth').eval().to(device)
 
@@ -202,8 +202,8 @@ def main(argv):
 
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
-                visualization = cv2.resize(visualization, None, fx=1.75, fy=1.75, interpolation=cv2.INTER_AREA)
-                graphImage = cv2.resize(graphImage, None, fx=1.75, fy=1.75, interpolation=cv2.INTER_AREA)
+                visualization = cv2.resize(visualization, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
+                graphImage = cv2.resize(graphImage, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
 
 
                 cv2.imshow("graphImage", graphImage)

@@ -36,12 +36,6 @@ def putNames(graphImg, cntrs):
     return
 
 
-def draw_circle(event,x,y,flags,param):
-	global mouseX,mouseY
-	if event == cv2.EVENT_LBUTTONDOWN:
-		print(x, y, image2[int(y),int(x)])	
-
-
 
 def getSingleCenterFromMask(pred, depth):
     """
@@ -107,7 +101,7 @@ def main(argv):
         'max_long_term_elements': 10000,
     }
 
-    device = "cuda"
+
 
     print("CUDA version: ",torch.version.cuda)
     network = XMem(config, './XMem/saves/XMem.pth').eval().to(device)
@@ -134,9 +128,6 @@ def main(argv):
     j=0
     threshold=100
     timer=Timer()
-    global image2
-    cv2.namedWindow('image1')
-    cv2.setMouseCallback('image1',draw_circle)
 
     with torch.cuda.amp.autocast(enabled=True):
 

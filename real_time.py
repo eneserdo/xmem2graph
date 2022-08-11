@@ -93,11 +93,11 @@ def main(argv):
     torch.cuda.empty_cache()
 
     set_mask=False
-    is_demo=False
+    mask_ready=False
     try:
-        if argv[1]=="demo":
+        if argv[1]=="mask_ready":
             set_mask=True
-            is_demo=True 
+            mask_ready=True 
     except IndexError:
         pass
 
@@ -135,7 +135,7 @@ def main(argv):
                 start_mask=perf_counter() 
                 set_mask=False
 
-                if not is_demo:
+                if not mask_ready:
                     cv2.imwrite("./ritm_interactive_segmentation/initial.png", img1)
                     subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
                 stop_mask=perf_counter()

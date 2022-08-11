@@ -224,7 +224,7 @@ class GraphDrawer:
 
                 
                 if touch_threshold>distance:
-                    cv2.line(graphImage, (closest_p1[1], closest_p1[0]), (closest_p2[1], closest_p2[0]), (20,100,90), 3)
+                    cv2.line(graphImage, (first_center[1], first_center[0]), (second_center[1], second_center[0]), (20,100,90), 3)
 
                 
                 # if their center is closer than the threshold then they are candidate for "touch"

@@ -114,13 +114,8 @@ def closestDistance(obj_mask1, center1, obj_mask2, center2, depth, graphImage):
     closest1, closest2, minDist = getMinDist(points1, points2)
 
     # cv2.line(graphImage, (int(closest1[1]), int(closest1[0])), (int(closest2[1]), int(closest2[0])), (20,100,90), 1)
-
-
-    # return closest1, closest2
     
     return closest1, closest2, minDist
-
-
 
 
 
@@ -188,7 +183,7 @@ class GraphDrawer:
         for key, value in curr_center.items():
             self.avr_centers[key]=(self.avr_centers[key]*self.beta +(1-self.beta)*value).astype(np.int64)
 
-    def getGraph(self, curr_centers, mask, check_threshold, proximity, depth, show_labels=True):
+    def getGraph(self, curr_centers, mask, check_threshold, touch_threshold, depth, show_labels=True):
         
         # self._impute_and_push(curr_centers)
         
@@ -227,16 +222,22 @@ class GraphDrawer:
 
                 distance=int(255*dist(first_center, second_center)/max_distance)
 
+                
+                if touch_threshold>distance:
+                    cv2.line(graphImage, (closest_p1[1], closest_p1[0]), (closest_p2[1], closest_p2[0]), (20,100,90), 3)
+
+                
                 # if their center is closer than the threshold then they are candidate for "touch"
-                if check_threshold>distance:
+                elif check_threshold>distance:
                     
+                    # candidate
                     cv2.line(graphImage, (first_center[1], first_center[0]), (second_center[1], second_center[0]), (51,204,51), 1)
-
+                    
                     # if their closest points are touching they are touched for sure
-                    # if closestDistance((mask==int(first_id))*1, first_center, (mask==int(second_id))*1, second_center, depth)
                     closest_p1, closest_p2, minDist= closestDistance((mask==int(first_id))*1, first_center, (mask==int(second_id))*1, second_center, depth, graphImage,)
-
-                    if proximity>minDist:
+                    
+                    if touch_threshold>minDist:
+                        cv2.line(graphImage, (first_center[1], first_center[0]), (second_center[1], second_center[0]), (20,100,90), 3)
                         cv2.line(graphImage, (closest_p1[1], closest_p1[0]), (closest_p2[1], closest_p2[0]), (20,100,90), 3)
                         cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
 
@@ -256,3 +257,10 @@ class GraphDrawer:
             cv2.putText(graphImage, f"{center}", (center[1] - 1, center[0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0,0,204), 1)
 
         return graphImage
+
+
+
+class TableRelation:
+    def __init__(self, corners):
+        pass
+        

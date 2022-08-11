@@ -152,7 +152,7 @@ def main(argv):
                 cv2.imshow("vis", visualization)
                 cv2.namedWindow("graphImage")
                 cv2.createTrackbar('check_threshold','graphImage',50,500,nothing)
-                cv2.createTrackbar('proximity','graphImage',15,50,nothing)
+                cv2.createTrackbar('touch_threshold','graphImage',15,50,nothing)
                 run_xmem=True
 
                 graphDrawer=GraphDrawer(num_obj=num_objects, queue_length=1, beta=0.95, avr_on=False)
@@ -179,11 +179,11 @@ def main(argv):
                 print("Centers:", centers)
 
                 check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')
-                proximity = cv2.getTrackbarPos('proximity','graphImage')
+                touch_threshold = cv2.getTrackbarPos('touch_threshold','graphImage')
                 
                 start_graph=perf_counter()
                 # graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
-                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, proximity, depth=img2, show_labels=graph_show_labels)
+                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, depth=img2, show_labels=graph_show_labels)
                 print("Graph time: ", perf_counter()-start_graph)
 
                 

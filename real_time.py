@@ -16,8 +16,30 @@ from model.network import XMem
 from inference.inference_core import InferenceCore
 from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
 
+
+# My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer
+from utils import Timer
+
+label_map={1: "hand",
+           2: "pan",
+           3: "cup",
+           4: "spoon",
+           5: "foam_balls",
+           6: "hand"}
+
+
+def putNames(graphImg, cntrs):
+    for id, center in cntrs.items():
+        cv2.putText(graphImg, label_map[id], (center[1] - 15 , center[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
+    return
+
+
+def draw_circle(event,x,y,flags,param):
+	global mouseX,mouseY
+	if event == cv2.EVENT_LBUTTONDOWN:
+		print(x, y, image2[int(y),int(x)])	
 
 
 
@@ -111,19 +133,21 @@ def main(argv):
     i=0
     j=0
     threshold=100
-
+    timer=Timer()
+    global image2
+    cv2.namedWindow('image1')
+    cv2.setMouseCallback('image1',draw_circle)
 
     with torch.cuda.amp.autocast(enabled=True):
 
         for temp_img1, temp_img2 in rosrunner.frameGenerator():
-            if j==0:
-                start=perf_counter()
-            
+
+            timer.start()
+
             if temp_img1 is None:
                 break
 
             print("="*50)
-            j=j+1
             
             img1=shift((temp_img1).copy(), shift_x, shift_y)
             img2=shift(temp_img2, -shift_x, -shift_y)
@@ -132,13 +156,11 @@ def main(argv):
             if set_mask:
                 cv2.destroyAllWindows()
                 print("Wait for the interactive segmentation screen")
-                start_mask=perf_counter() 
                 set_mask=False
 
                 if not mask_ready:
                     cv2.imwrite("./ritm_interactive_segmentation/initial.png", img1)
                     subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
-                stop_mask=perf_counter()
 
                 num_objects, mask = adapt_mask('./ritm_interactive_segmentation/mask.png')
                 processor = InferenceCore(network, config=config)
@@ -157,7 +179,6 @@ def main(argv):
 
                 graphDrawer=GraphDrawer(num_obj=num_objects, queue_length=1, beta=0.95, avr_on=False)
 
-                start=start+(stop_mask-start_mask)
             
             if show_blended:
                 blended=getBlended(img1, img2)
@@ -185,6 +206,7 @@ def main(argv):
                 # graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
                 graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, depth=img2, show_labels=graph_show_labels)
                 print("Graph time: ", perf_counter()-start_graph)
+                putNames(graphImage, centers)
 
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
@@ -198,12 +220,10 @@ def main(argv):
                 cv2.imshow('image2', img2*5)
                 cv2.imshow('image1', img1)
             
-            time_total=perf_counter()-start
-            print("fps:", np.round(j/time_total, 2))
+            fps=timer.end_and_print()
 
             if show_blended:
-                blended = cv2.putText(blended, f"FPS: {np.round(j/time_total, 2)}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-                blended = cv2.putText(blended, f"Total: {np.round(time_total/j, 3)} s", (30, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                blended = cv2.putText(blended, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 cv2.imshow('blended', blended)
             
             

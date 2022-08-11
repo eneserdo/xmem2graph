@@ -14,7 +14,7 @@ class Timer:
     def end_and_print(self):
         elapsed=perf_counter()-self.start_time
         self.queue.append(elapsed)
-        val=np.round(1/np.mean(np.array(queue)), 2)
+        val=np.round(1/np.mean(np.array(self.queue)), 2)
         print(self.name+"FPS: ", val)
         return val
         
@@ -23,6 +23,6 @@ def rgb_to_real(u, v, d):
     f=525
     cx=320
     cy=240
-    
+
 
     return x, y, z

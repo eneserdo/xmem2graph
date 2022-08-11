@@ -11,15 +11,27 @@ from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer
 from utils import Timer
 
+def convert_from_uvd(self, u, v, d):
+    cx=320
+    cy=240
+    f=525
+    x_over_z = (cx - u) / f
+    y_over_z = (cy - v) / f
+    z = d / np.sqrt(1. + x_over_z**2 + y_over_z**2)
+    x = x_over_z * z
+    y = y_over_z * z
+    return x, y, z
+
+
 def draw_circle(event,x,y,flags,param):
     global mouseX,mouseY
     if event == cv2.EVENT_LBUTTONDOWN:
         print(x, y, img2[int(y),int(x)])
 
-        A=np.array([1/525.0, 0, -64/105.0,0, 1/525.0, -16/35,0,0,1]).reshape(3,3)
-        real=A@np.array([[x], [y], [1]])*img2[int(y),int(x)]
+        # A=np.array([1/525.0, 0, -64/105.0,0, 1/525.0, -16/35,0,0,1]).reshape(3,3)
+        # real=A@np.array([[x], [y], [1]])*img2[int(y),int(x)]
         # print(img2[int(y),int(x)]/((A@np.array([[x], [y], [1]]))[2]))	
-        print("real: ", real)	
+        print("real: ", convert_from_uvd(x, y, img2[int(y),int(x)]))	
         
 
 rosrunner = RosRun("asus")

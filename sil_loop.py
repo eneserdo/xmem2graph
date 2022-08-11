@@ -11,7 +11,7 @@ from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer
 from utils import Timer
 
-def convert_from_uvd(self, u, v, d):
+def convert_from_uvd(u, v, d):
     cx=320
     cy=240
     f=525

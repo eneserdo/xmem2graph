@@ -15,8 +15,8 @@ def convert_from_uvd(u, v, d):
     cx=320
     cy=240
     f=525
-    x_over_z = (cx - u) / f
-    y_over_z = (cy - v) / f
+    x_over_z = f/ (cx - u)
+    y_over_z = f/ (cy - v)
     z = d / np.sqrt(1. + x_over_z**2 + y_over_z**2)
     x = x_over_z * z
     y = y_over_z * z

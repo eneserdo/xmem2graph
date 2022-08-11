@@ -102,7 +102,8 @@ def main(argv):
     }
 
 
-
+    device="cuda"
+    
     print("CUDA version: ",torch.version.cuda)
     network = XMem(config, './XMem/saves/XMem.pth').eval().to(device)
 

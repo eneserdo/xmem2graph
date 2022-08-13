@@ -39,6 +39,8 @@ conda env create -f environment.yml
 
 # To run 
 
+Do not forget to change camera type
+
 ```
 python real_time.py
 ```

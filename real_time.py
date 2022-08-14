@@ -20,8 +20,9 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer
-from utils import Timer
+from utils import Timer, convert_from_uvd, Coord
 
+# Global variables
 label_map={1: "hand",
            2: "pan",
            3: "cup",
@@ -32,33 +33,39 @@ label_map={1: "hand",
 
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
-        cv2.putText(graphImg, label_map[id], (center[1] - 15 , center[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
+        cv2.putText(graphImg, label_map[id], (center.v - 15 , center.u - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
     return
 
+Coord()
 
-
-def getSingleCenterFromMask(pred, depth):
+# def getSingleCenterFromMask(pred, depth):
+def getSingleCenterFromMask(pred):
     """
         If pred has SINGLE segments
     """
-    ret, thresh = cv2.threshold(pred*20, 5, 255, 0)
+    _, thresh = cv2.threshold(pred*20, 5, 255, 0)
     M = cv2.moments(thresh)
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
 
-    return np.array([cY, cX, depth[cY, cX][0]])
+
+    # return np.array([cY, cX, depth[cY, cX][0]])
+    # return np.array([cY, cX])
+    return Coord(cY, cX)
 
 
-def getOrderedCenters(pred, depth, display=False):
+# def getOrderedCenters(pred, depth, display=False):
+def getOrderedCenters(pred):
 
     ids = np.unique(pred)[1:]
     centers = {}
 
     for id in ids:
-        centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
-        if display:
-            cv2.circle(pred, (centers[id][1], centers[id][0]), 3, 255, -1)
-            cv2.putText(pred, f"{centers[id]}", (centers[id][1] - 1, centers[id][0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        # centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
+        centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype))
+        # if display:
+        #     cv2.circle(pred, (centers[id][1], centers[id][0]), 3, 255, -1)
+        #     cv2.putText(pred, f"{centers[id]}", (centers[id][1] - 1, centers[id][0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
 
     return centers
 

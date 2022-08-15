@@ -97,8 +97,9 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
     
 
     # if len(related_indicies2)!=0:
-    points1=itemgetter(*related_indicies1)(points1)
-    for p in points1:
+    # points1=itemgetter(*related_indicies1)(points1)
+    points1_subset=[points1[i] for i in related_indicies1]
+    for p in points1_subset:
         cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)
 
     ### Second Mask ###
@@ -119,13 +120,16 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
     # points2=points2[related_indicies2]
 
     # if len(related_indicies2)!=0:
-    points2=itemgetter(*related_indicies2)(points2)
-    for p in points2:
+    # points2=itemgetter(*related_indicies2)(points2)
+    points2_subset=[points2[i] for i in related_indicies2]
+
+    for p in points2_subset:
         cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)
 
 
-    # TODO: append centers to points
-    closest1, closest2, minDist = getMinDistBtwPoints(points1, points2)
+    points1_subset.append(center1)
+    points2_subset.append(center2)
+    closest1, closest2, minDist = getMinDistBtwPoints(points1_subset, points2_subset)
     # cv2.line(graphImage, (int(closest1[1]), int(closest1[0])), (int(closest2[1]), int(closest2[0])), (20,100,90), 1)
     
     return closest1, closest2, minDist

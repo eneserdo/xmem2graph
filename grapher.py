@@ -180,14 +180,31 @@ class GraphDrawer:
         
         else:
             for id_, center in curr_center.items():
-                if center.d==0:
-                    try:
+                
+                # for new comers (add them)
+                if id_ in self.movingAverageCenters.keys():
+                    if center.d==0:
                         curr_center[id_].update_d(self.movingAverageCenters[id_].d)
-                    except:
-                        print("ERROR:")
-                        print(f"{curr_center=}")
-                        print(f"{self.movingAverageCenters=}")
-                        raise KeyError
+                    
+                else:
+                    self.movingAverageCenters[id_]=center
+
+            # for unused keys (remove them)
+            for k in (self.movingAverageCenters.keys()-curr_center.keys()):
+                del self.movingAverageCenters[k]
+
+                # if center.d==0:
+                #     try:
+                #         # for already available ones (update them)
+                #         curr_center[id_].update_d(self.movingAverageCenters[id_].d)
+                #     except:
+                #         # for new comers (add them)
+                #         self.movingAverageCenters[id_]=center
+                #         # print("ERROR:")
+                #         # print(f"{curr_center=}")
+                #         # print(f"{self.movingAverageCenters=}")
+                #         # raise KeyError
+                    
 
     # def _average(self):
     #     counter=np.zeros((self.num_obj))
@@ -215,20 +232,23 @@ class GraphDrawer:
                 print(f"{curr_center=}")
                 print(f"{self.movingAverageCenters=}")
                 raise ValueError
-            # self.movingAverageCenters=curr_center
         else:
-            
             for id_, center in curr_center.items():
-                try:
-                    # for already available ones (update them)
-                    self.movingAverageCenters[id_].d=(self.movingAverageCenters[id_].d*self.beta +(1-self.beta)*center.d).astype(np.int64)
-                except KeyError:
-                    # for new comers (add them)
-                    self.movingAverageCenters[id_]=center
+                self.movingAverageCenters[id_].d=(self.movingAverageCenters[id_].d*self.beta +(1-self.beta)*center.d).astype(np.int64)
+          
+            # for id_, center in curr_center.items():
+            #     try:
+            #         # for already available ones (update them)
+            #         self.movingAverageCenters[id_].d=(self.movingAverageCenters[id_].d*self.beta +(1-self.beta)*center.d).astype(np.int64)
+            #     except KeyError:
+            #         # for new comers (add them)
+            #         self.movingAverageCenters[id_]=center
 
-            # for unused keys (remove them)
-            for k in (self.movingAverageCenters.keys()-curr_center.keys()):
-                del self.movingAverageCenters[k]
+            # # for unused keys (remove them)
+            # for k in (self.movingAverageCenters.keys()-curr_center.keys()):
+            #     del self.movingAverageCenters[k]
+
+
 
 
 

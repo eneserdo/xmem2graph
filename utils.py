@@ -85,3 +85,13 @@ def print_debug(**kwargs):
         print(f"{key} = {value}")
 
 
+
+def arrayAndDepthToCoord(array, depth_map):
+    assert array.shape[1]==2
+
+    coord_arr=[]
+    
+    for a in array:
+        coord_arr.append(Coord(a[1], a[0], depth_map[a[1], a[0]]))
+    
+    return coord_arr

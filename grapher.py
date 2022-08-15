@@ -3,7 +3,7 @@ import numpy as np
 from math import sqrt
 from operator import itemgetter
 
-from utils import convert_from_uvd, Coord, print_debug
+from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord
 
 
 EVERY_NTH_ELEMENT=10
@@ -22,16 +22,6 @@ def colorMap(name):
     # except:
     #     return (255*to_rgb(CSS4_COLORS[colorName[name]])[::-1]).astype(np.uint8)
         
-
-
-# def realDistance(c1, c2, depth):
-#     real_c1=convert_from_uvd(c1[0], c1[1], depth[c1[0], c1[1]][0])
-#     real_c2=convert_from_uvd(c2[0], c2[1], depth[c2[0], c2[1]][0])
-
-#     # return sqrt((c1[0]-c2[0])**2+ (c1[1]-c2[1])**2+ (c1[2]-c2[2])**2)
-#     # return sqrt(sum([(c1[i]-c2[i])**2 for i in range(3)]))
-#     return sqrt(np.sum((real_c1-real_c2)**2))
-
 
 
 def getMinDistBtwPoints(points1, points2):
@@ -78,57 +68,71 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
         Then, sub-samples them. Finally measure the min distance between two point groups
     """
 
+    
+    ## IMPORTANT!: Instead of boundary points I used random points on mask, 
+    # because edges of objects have very unreliable depth values
+
+
     ### First Mask ###
- 
-    points1=mask2BoundaryLocs(obj_mask1, depth)
+    
+    ## Get boundary points
+    # points1=mask2BoundaryLocs(obj_mask1, depth)
 
-    unit_vector1=center1.realUnitVectorTo(center2)
-
-    related_indicies1=[]
-    for i,p in enumerate(points1):
+    # get subset
+    # unit_vector1=center1.realUnitVectorTo(center2)
+    # related_indicies1=[]
+    # for i,p in enumerate(points1):
         
-        from_center1_to_p=center1.realUnitVectorTo(p)
+    #     from_center1_to_p=center1.realUnitVectorTo(p)
 
-        curr_val=np.dot(from_center1_to_p, unit_vector1)
+    #     curr_val=np.dot(from_center1_to_p, unit_vector1)
 
-        if curr_val>np.cos(SUBSAMPLING_DEGREE):
-            related_indicies1.append(i)
+    #     if curr_val>np.cos(SUBSAMPLING_DEGREE):
+    #         related_indicies1.append(i)
 
     
+    # points1_subset=[points1[i] for i in related_indicies1]
 
-    # if len(related_indicies2)!=0:
-    # points1=itemgetter(*related_indicies1)(points1)
-    points1_subset=[points1[i] for i in related_indicies1]
+    a,b=np.where(obj_mask1>10)
+    points1=np.concatenate([a.reshape(-1,1), b.reshape(-1,1)], axis=1)
+    subset1=np.random.choice(len(points1), int(len(points1)*0.005))
+    points1_subset=points1[subset1]
+    points1_subset=arrayAndDepthToCoord(points1_subset, depth)
+
     for p in points1_subset:
         cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)
 
     ### Second Mask ###
 
-    points2=mask2BoundaryLocs(obj_mask2, depth)
-    unit_vector2 = -unit_vector1
+    # points2=mask2BoundaryLocs(obj_mask2, depth)
+    # unit_vector2 = -unit_vector1
     
-    related_indicies2=[]
-    for i,p in enumerate(points2):
+    # related_indicies2=[]
+    # for i,p in enumerate(points2):
         
-        from_center2_to_p=center2.realUnitVectorTo(p)
+    #     from_center2_to_p=center2.realUnitVectorTo(p)
 
-        curr_val=np.dot(from_center2_to_p, unit_vector2)
+    #     curr_val=np.dot(from_center2_to_p, unit_vector2)
 
-        if curr_val>np.cos(SUBSAMPLING_DEGREE):
-            related_indicies2.append(i)
+    #     if curr_val>np.cos(SUBSAMPLING_DEGREE):
+    #         related_indicies2.append(i)
     
-    # points2=points2[related_indicies2]
+    # points2_subset=[points2[i] for i in related_indicies2]
 
-    # if len(related_indicies2)!=0:
-    # points2=itemgetter(*related_indicies2)(points2)
-    points2_subset=[points2[i] for i in related_indicies2]
+    a,b=np.where(obj_mask2>10)
+    points2=np.concatenate([a.reshape(-1,1), b.reshape(-1,1)], axis=1)
+    subset2=np.random.choice(len(points2), int(len(points2)*0.005))
+    points2_subset=points2[subset2]
+    points2_subset=arrayAndDepthToCoord(points2_subset, depth)
+    
+
 
     for p in points2_subset:
         cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)
 
 
-    points1_subset.append(center1)
-    points2_subset.append(center2)
+    # points1_subset.append(center1)
+    # points2_subset.append(center2)
     closest1, closest2, minDist = getMinDistBtwPoints(points1_subset, points2_subset)
     # cv2.line(graphImage, (int(closest1[1]), int(closest1[0])), (int(closest2[1]), int(closest2[0])), (20,100,90), 1)
     

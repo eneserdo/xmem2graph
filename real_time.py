@@ -37,6 +37,11 @@ def putNames(graphImg, cntrs):
     return
 
 
+def print_coord(event,x,y, flags, param):
+    # global img2
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print("Selected Point: ", convert_from_uvd(x, y, img2[int(y),int(x)]))	
+
 # def getSingleCenterFromMask(pred, depth):
 def _getSingleCenterFromMask(pred, depth):
     """
@@ -92,6 +97,7 @@ def nothing(x):
 
 
 def main(argv):
+    global img2
     torch.set_grad_enabled(False)
 
     # default configuration
@@ -135,6 +141,8 @@ def main(argv):
     j=0
     timer=Timer()
 
+    
+
     with torch.cuda.amp.autocast(enabled=True):
 
         for temp_img1, temp_img2 in rosrunner.frameGenerator():
@@ -168,7 +176,11 @@ def main(argv):
                 prediction = processor.step(frame_torch, mask_torch[1:])
                 prediction = torch_prob_to_numpy_mask(prediction)
                 visualization = overlay_davis(img1, prediction)
+
+                cv2.namedWindow("vis")
+                cv2.setMouseCallback('vis', print_coord)
                 cv2.imshow("vis", visualization)
+
                 cv2.namedWindow("graphImage")
                 cv2.createTrackbar('check_threshold','graphImage',50,500,nothing)
                 cv2.createTrackbar('touch_threshold','graphImage',15,50,nothing)
@@ -272,4 +284,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+    img2=None
     main(sys.argv)

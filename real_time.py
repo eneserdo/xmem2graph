@@ -30,6 +30,8 @@ label_map={1: "hand",
            5: "foam_balls",
            6: "hand"}
 
+ZOOM_COEF=1.5
+
 
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
@@ -40,6 +42,8 @@ def putNames(graphImg, cntrs):
 def print_coord(event,x,y, flags, param):
     # global img2
     if event == cv2.EVENT_LBUTTONDOWN:
+        x=x*ZOOM_COEF
+        y=y*ZOOM_COEF
         x1,y1,z1=convert_from_uvd(y, x, img2[int(y),int(x)])
         print(f"({round(x1[0], 2)}, {round(y1[0], 2)}, {round(z1[0], 2)})")	
 
@@ -221,8 +225,8 @@ def main(argv):
 
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
-                visualization = cv2.resize(visualization, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
-                graphImage = cv2.resize(graphImage, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
+                visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_AREA)
+                graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_AREA)
 
                 visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 cv2.imshow("graphImage", graphImage)

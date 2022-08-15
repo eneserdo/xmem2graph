@@ -139,6 +139,7 @@ def main(argv):
     graph_show_labels=True
     i=0
     j=0
+    fps=0
     timer=Timer()
 
     
@@ -206,7 +207,7 @@ def main(argv):
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
                 centers=getOrderedCenters(prediction, img2)
-                print("Centers:", centers)
+                # print("Centers:", centers)
 
                 check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')
                 touch_threshold = cv2.getTrackbarPos('touch_threshold','graphImage')
@@ -222,14 +223,14 @@ def main(argv):
                 visualization = cv2.resize(visualization, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
                 graphImage = cv2.resize(graphImage, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_AREA)
 
-
+                visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
             else:
                 cv2.imshow('image2', img2*5)
                 cv2.imshow('image1', img1)
             
-            fps=timer.end_and_print()
+            fps=timer.end_and_print(no_print=True)
 
             if show_blended:
                 blended = cv2.putText(blended, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)

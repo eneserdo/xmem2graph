@@ -12,11 +12,12 @@ class Timer:
     def start(self):
         self.start_time=perf_counter()
         
-    def end_and_print(self):
+    def end_and_print(self, no_print=False):
         elapsed=perf_counter()-self.start_time
         self.queue.append(elapsed)
         val=np.round(1/np.mean(np.array(self.queue)), 2)
-        print(self.name+"FPS: ", val)
+        if not no_print:
+            print(self.name+"FPS: ", val)
         return val
 
 
@@ -77,3 +78,5 @@ def print_debug(**kwargs):
     print("Error:")
     for key, value in kwargs.items():
         print(f"{key} = {value}")
+
+

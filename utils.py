@@ -42,7 +42,7 @@ def convert_from_uvd(u, v, d):
 
 class Coord:
     """
-        Coordinates to represent a pixel in both real world (x, y, z) and image plane (u, v)
+    Coordinates to represent a pixel in both real world (x, y, z) and image plane (u, v)
     """
     def __init__(self, u:int, v:int, d:float) -> None:
         self.u=u
@@ -53,15 +53,27 @@ class Coord:
         self.realCoord=np.array([self.x, self.y, self.z])
 
 
-    def realDistanceTo(self, other):
+    def realDistanceTo(self, other) -> float:
         return sqrt(np.sum((self.realCoord - other.realCoord)**2))
     
     # def imgDotProductWith(self, other):
     #     return (self.imgCoord-other.imgCoord)/np.linalg.norm(self.imgCoord-other.imgCoord)
     
-    def realUnitVectorTo(self, other):
+    def realUnitVectorTo(self, other) -> np.ndarray:
         return (other.realCoord-self.realCoord)/np.linalg.norm(self.realCoord-other.realCoord)
 
 
     def __repr__(self) -> str:
-        return f"({self.x}, {self.y}, {self.z})"
+        return f"({round(self.x)}, {round(self.x)}, {round(self.x)})"
+
+    def update_d(self, d) -> None:
+        self.d=d
+        self.x, self.y, self.z=convert_from_uvd(self.u, self.v, self.d)
+        self.realCoord=np.array([self.x, self.y, self.z])
+
+
+
+def print_debug(**kwargs):
+    print("Error:")
+    for key, value in kwargs.items():
+        print(f"{key} = {value}")

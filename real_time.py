@@ -36,10 +36,9 @@ def putNames(graphImg, cntrs):
         cv2.putText(graphImg, label_map[id], (center.v - 15 , center.u - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
     return
 
-Coord()
 
 # def getSingleCenterFromMask(pred, depth):
-def getSingleCenterFromMask(pred):
+def _getSingleCenterFromMask(pred, depth):
     """
         If pred has SINGLE segments
     """
@@ -51,18 +50,18 @@ def getSingleCenterFromMask(pred):
 
     # return np.array([cY, cX, depth[cY, cX][0]])
     # return np.array([cY, cX])
-    return Coord(cY, cX)
+    return Coord(cY, cX, depth[cY, cX][0])
 
 
 # def getOrderedCenters(pred, depth, display=False):
-def getOrderedCenters(pred):
+def getOrderedCenters(pred, depth):
 
     ids = np.unique(pred)[1:]
     centers = {}
 
     for id in ids:
         # centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
-        centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype))
+        centers[id] = _getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
         # if display:
         #     cv2.circle(pred, (centers[id][1], centers[id][0]), 3, 255, -1)
         #     cv2.putText(pred, f"{centers[id]}", (centers[id][1] - 1, centers[id][0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
@@ -134,7 +133,6 @@ def main(argv):
     graph_show_labels=True
     i=0
     j=0
-    threshold=100
     timer=Timer()
 
     with torch.cuda.amp.autocast(enabled=True):
@@ -176,7 +174,7 @@ def main(argv):
                 cv2.createTrackbar('touch_threshold','graphImage',15,50,nothing)
                 run_xmem=True
 
-                graphDrawer=GraphDrawer(num_obj=num_objects, queue_length=1, beta=0.95, avr_on=False)
+                graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95)
 
             
             if show_blended:
@@ -195,7 +193,7 @@ def main(argv):
                 frame_torch, _ = image_to_torch(img1, device=device)
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
-                centers=getOrderedCenters(prediction, img2, display=False)
+                centers=getOrderedCenters(prediction, img2)
                 print("Centers:", centers)
 
                 check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')

@@ -1,8 +1,13 @@
 import cv2
 import numpy as np
 from math import sqrt
+from operator import itemgetter
 
-from utils import convert_from_uvd, Coord
+from utils import convert_from_uvd, Coord, print_debug
+
+
+EVERY_NTH_ELEMENT=10
+SUBSAMPLING_DEGREE=np.pi/2
 
 # from matplotlib.colors import to_rgb, CSS4_COLORS
 def colorMap(name):
@@ -46,7 +51,7 @@ def getMinDistBtwPoints(points1, points2):
     return p1_min, p2_min, minDist
 
 
-def mask2BoundaryLocs(obj_mask, depth: np.ndarray, every_nth_element:int=8):
+def mask2BoundaryLocs(obj_mask:np.ndarray, depth:np.ndarray, every_nth_element:int=EVERY_NTH_ELEMENT):
     """
         Calculates the boundary points of the given mask (for single object), 
         then only choose every $(every_nth_element) th element
@@ -84,13 +89,17 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
         
         from_center1_to_p=center1.realUnitVectorTo(p)
 
-        curr_val=np.dot(from_center1_to_p.realCoord, unit_vector1.realCoord)
+        curr_val=np.dot(from_center1_to_p, unit_vector1)
 
-        if curr_val>np.cos(np.pi/3):
+        if curr_val>np.cos(SUBSAMPLING_DEGREE):
             related_indicies1.append(i)
 
     
-    points1=points1[related_indicies1]
+
+    # if len(related_indicies2)!=0:
+    points1=itemgetter(*related_indicies1)(points1)
+    for p in points1:
+        cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)
 
     ### Second Mask ###
 
@@ -104,16 +113,16 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
 
         curr_val=np.dot(from_center2_to_p, unit_vector2)
 
-        if curr_val>np.cos(np.pi/3):
+        if curr_val>np.cos(SUBSAMPLING_DEGREE):
             related_indicies2.append(i)
     
-    points2=points2[related_indicies2]
+    # points2=points2[related_indicies2]
 
-    for p in points1:
-        cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)
-
+    # if len(related_indicies2)!=0:
+    points2=itemgetter(*related_indicies2)(points2)
     for p in points2:
         cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)
+
 
     # TODO: append centers to points
     closest1, closest2, minDist = getMinDistBtwPoints(points1, points2)
@@ -125,80 +134,112 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
 
 class GraphDrawer:
     """
-    TODO: queue length 1 ise direkt moving avr olsun, ve beta verilmemişse hata versin
+        Transforms semantic segmented image masks to graphs
     """
-    def __init__(self, num_obj, queue_length=1, avr_on=False):
+    def __init__(self, num_obj, queue_length=-1, beta=0.95, avr_on=False):
         
-        if queue_length==1 and beta==0:
-            raise ValueError("For queue length 1, moving avr is used, so specify the beta")
+        # if queue_length==1 and beta==0:
+            # raise ValueError("For queue length 1, moving avr is used, so specify the beta")
 
-        self.centers_queue=[]
-        self.queue_length=queue_length
+        if (queue_length!=-1) or (avr_on is True):
+            raise NotImplementedError("Averaging queue is not implemented")
+        # self.queue_length=queue_length
+        # self.centers_queue=[]
+
+        self.movingAverageCenters={} 
         self.num_obj=num_obj
         self.beta=beta
-        self.avr_centers={}
-        self.avr_on = avr_on
+        
+        # self.avr_centers={}
+        # self.avr_on = avr_on
         # for i in range(1,1+num_obj):
         #     self.avr_centers[i]=np.zeros((3))
 
-
-    def _impute_and_push(self, centers):
+    # def _impute_and_push(self, centers):
         
-        if len(self.centers_queue)==self.queue_length:
+    #     if len(self.centers_queue)==self.queue_length:
             
-            for key, value in centers.items():
-                # z koordinatı 0 gelirse onun yerine ortalamayı koy
-                if value[2]==0:
-                    print("imputed: ", key)
-                    centers[key][2]=self.avr_centers[key][2]
+    #         for key, value in centers.items():
+    #             # z koordinatı 0 gelirse onun yerine ortalamayı koy
+    #             if value[2]==0:
+    #                 print("imputed: ", key)
+    #                 centers[key][2]=self.avr_centers[key][2]
             
-            self.centers_queue.append(centers) 
-            self.centers_queue.pop(0)
+    #         self.centers_queue.append(centers) 
+    #         self.centers_queue.pop(0)
+    #     else:
+    #         print("queue not yet filled")
+    #         self.centers_queue.append(centers)
+
+    def _impute_and_push(self, curr_center:dict):
+        """
+            Only keeps track of d (as moving average). If it gets 0, imputes it and updates x,y,z. 
+        """
+        if len(self.movingAverageCenters)==0: 
+            self.movingAverageCenters=curr_center
+        
         else:
-            print("queue not yet filled")
-            self.centers_queue.append(centers)
+            for id_, center in curr_center.items():
+                if center.d==0:
+                    try:
+                        curr_center[id_].update_d(self.movingAverageCenters[id_].d)
+                    except:
+                        print("ERROR:")
+                        print(f"{curr_center=}")
+                        print(f"{self.movingAverageCenters=}")
+                        raise KeyError
 
+    # def _average(self):
+    #     counter=np.zeros((self.num_obj))
+    #     for i in range(1,1+self.num_obj):
+    #         self.avr_centers[i]=np.zeros((3))
 
-    def _average(self):
-        counter=np.zeros((self.num_obj))
-        for i in range(1,1+self.num_obj):
-            self.avr_centers[i]=np.zeros((3))
+    #     for t in self.centers_queue:
+    #         for key, value in t.items():
+    #             counter[int(key)-1]+=1
+    #             self.avr_centers[key]+=value
 
-        for t in self.centers_queue:
-            for key, value in t.items():
-                counter[int(key)-1]+=1
-                self.avr_centers[key]+=value
-
-        for i in range(1,1+self.num_obj):
-            self.avr_centers[i]=(self.avr_centers[i]/counter[i-1]).astype(np.int64)
+    #     for i in range(1,1+self.num_obj):
+    #         self.avr_centers[i]=(self.avr_centers[i]/counter[i-1]).astype(np.int64)
 
         # self.avr_centers=self.centers_queue[-1]
 
-    # def _movingAverage(self):
+    def _movingAverage(self, curr_center):
         
-    #     curr_center=self.centers_queue[0]
+        # if it is first call
+        if len(self.movingAverageCenters)==0:
+            if len(curr_center)==0:
+                pass
+            else:
+                print("ERROR:")
+                print(f"{curr_center=}")
+                print(f"{self.movingAverageCenters=}")
+                raise ValueError
+            # self.movingAverageCenters=curr_center
+        else:
+            
+            for id_, center in curr_center.items():
+                try:
+                    # for already available ones (update them)
+                    self.movingAverageCenters[id_].d=(self.movingAverageCenters[id_].d*self.beta +(1-self.beta)*center.d).astype(np.int64)
+                except KeyError:
+                    # for new comers (add them)
+                    self.movingAverageCenters[id_]=center
 
-    #     # if it is first call
-    #     if len(self.avr_centers)==0:
-    #         self.avr_centers=curr_center
-    #         return
-        
-    #     for key, value in curr_center.items():
-    #         self.avr_centers[key]=(self.avr_centers[key]*self.beta +(1-self.beta)*value).astype(np.int64)
+            # for unused keys (remove them)
+            for k in (self.movingAverageCenters.keys()-curr_center.keys()):
+                del self.movingAverageCenters[k]
+
+
 
     def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, depth, show_labels=True):
         
-        # self._impute_and_push(curr_centers)
+        self._impute_and_push(curr_centers)
+        self._movingAverage(curr_centers)
         
-        if self.avr_on:
-            if self.queue_length==1:
-                self._movingAverage()
-            else:
-                self._average()
-            
-            centers=self.avr_centers
-        else:
-            centers=curr_centers
+
+        centers=curr_centers
+
         
         obj_ids=centers.keys()
 
@@ -212,7 +253,7 @@ class GraphDrawer:
 
             
         # max_distance=sqrt(mask.shape[1]**2+mask.shape[0]**2+400**2)
-        max_distance=100
+        # max_distance=10
         
         for first_id in obj_ids:
             first_center=centers[first_id]
@@ -224,16 +265,18 @@ class GraphDrawer:
                     continue
 
                 # distance=int(255*dist(first_center, second_center)/max_distance)
-                distance=int(first_center.realDistanceTo(second_center)/max_distance)
+                distance=round(first_center.realDistanceTo(second_center), 1)
 
                 
                 if touch_threshold>distance:
                     cv2.line(graphImage, (first_center.v, first_center.u), (second_center.v, second_center.u), (20,100,90), 3)
+                    cv2.putText(graphImage, f"{distance}", ((first_center.v+second_center.v)//2, (first_center.u+second_center.u)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
 
                 
                 # if their center is closer than the threshold then they are candidate for "touch"
                 elif check_threshold>distance:
-                    
+                    cv2.putText(graphImage, f"{distance}", ((first_center.v+second_center.v)//2, (first_center.u+second_center.u)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
+
                     # candidate
                     cv2.line(graphImage, (first_center.v, first_center.u), (second_center.v, second_center.u), (51,204,51), 1)
                     
@@ -243,7 +286,7 @@ class GraphDrawer:
                     if touch_threshold>minDist:
                         cv2.line(graphImage, (first_center.v, first_center.u), (second_center.v, second_center.u), (20,100,90), 3)
                         cv2.line(graphImage, (closest_p1.v, closest_p1.u), (closest_p2.v, closest_p2.u), (20,100,90), 3)
-                        cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
+                        # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
 
         
 

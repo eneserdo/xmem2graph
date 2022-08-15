@@ -95,7 +95,7 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
 
     a,b=np.where(obj_mask1*5>1)
     points1=np.concatenate([a.reshape(-1,1), b.reshape(-1,1)], axis=1)
-    subset1=np.random.choice(len(points1), max(int(len(points1)*0.001), 10))
+    subset1=np.random.choice(len(points1), max(int(len(points1)*0.005), 10))
     points1_subset=points1[subset1]
     # points1_subset=points1
     points1_subset=arrayAndDepthToCoord(points1_subset, depth)

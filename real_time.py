@@ -153,7 +153,7 @@ def main(argv):
             if temp_img1 is None:
                 break
 
-            print("="*50)
+            # print("="*50)
             
             img1=shift((temp_img1).copy(), shift_x, shift_y)
             img2=shift(temp_img2, -shift_x, -shift_y)

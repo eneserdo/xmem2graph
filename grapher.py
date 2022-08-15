@@ -319,7 +319,7 @@ class GraphDrawer:
                     
                     if touch_threshold>minDist:
                         cv2.line(graphImage, (first_center.v, first_center.u), (second_center.v, second_center.u), (20,100,90), 3)
-                        cv2.line(graphImage, (closest_p1.v, closest_p1.u), (closest_p2.v, closest_p2.u), (20,100,90), 3)
+                        cv2.line(graphImage, (closest_p1.v, closest_p1.u), (closest_p2.v, closest_p2.u), (20,100,90), 1)
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
 
         

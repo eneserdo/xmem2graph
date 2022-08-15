@@ -42,8 +42,9 @@ def putNames(graphImg, cntrs):
 def print_coord(event,x,y, flags, param):
     # global img2
     if event == cv2.EVENT_LBUTTONDOWN:
-        x=x*ZOOM_COEF
-        y=y*ZOOM_COEF
+        x=x/ZOOM_COEF
+        y=y/ZOOM_COEF
+        print(x,y)
         x1,y1,z1=convert_from_uvd(y, x, img2[int(y),int(x)])
         print(f"({round(x1[0], 2)}, {round(y1[0], 2)}, {round(z1[0], 2)})")	
 

@@ -215,7 +215,7 @@ def main(argv):
                 start_graph=perf_counter()
                 # graphImage=getGraph(centers, prediction.copy(), threshold, graph_show_labels)
                 graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, depth=img2, show_labels=graph_show_labels)
-                print("Graph time: ", perf_counter()-start_graph)
+                # print("Graph time: ", perf_counter()-start_graph)
                 putNames(graphImage, centers)
 
                 

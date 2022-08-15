@@ -93,10 +93,11 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
     
     # points1_subset=[points1[i] for i in related_indicies1]
 
-    a,b=np.where(obj_mask1>10)
+    a,b=np.where(obj_mask1*5>1)
     points1=np.concatenate([a.reshape(-1,1), b.reshape(-1,1)], axis=1)
-    subset1=np.random.choice(len(points1), int(len(points1)*0.005))
+    subset1=np.random.choice(len(points1), max(int(len(points1)*0.001), 10))
     points1_subset=points1[subset1]
+    # points1_subset=points1
     points1_subset=arrayAndDepthToCoord(points1_subset, depth)
 
     for p in points1_subset:
@@ -119,13 +120,18 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
     
     # points2_subset=[points2[i] for i in related_indicies2]
 
-    a,b=np.where(obj_mask2>10)
+    a,b=np.where(obj_mask2*5>1)
     points2=np.concatenate([a.reshape(-1,1), b.reshape(-1,1)], axis=1)
-    subset2=np.random.choice(len(points2), int(len(points2)*0.005))
+    subset2=np.random.choice(len(points2), max(int(len(points2)*0.001), 10))
     points2_subset=points2[subset2]
+    # points2_subset=points2
     points2_subset=arrayAndDepthToCoord(points2_subset, depth)
     
-
+    if len(points2_subset) ==0:
+        print(points2_subset)
+        print(points2)
+        raise ValueError
+    
 
     for p in points2_subset:
         cv2.circle(graphImage, (p.v, p.u), 2, (20,100,90), -1)

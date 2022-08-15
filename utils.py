@@ -92,6 +92,6 @@ def arrayAndDepthToCoord(array, depth_map):
     coord_arr=[]
     
     for a in array:
-        coord_arr.append(Coord(a[1], a[0], depth_map[a[1], a[0]]))
+        coord_arr.append(Coord(a[0], a[1], depth_map[a[0], a[1]][0]))
     
     return coord_arr

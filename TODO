@@ -12,4 +12,7 @@
 
 # "convert_from_uvd" de kullanılan scale tune edilmeli
 
+# Belki de:
+rgb,depth --(python)--> mask, depth --(c++)--> pcl --(kd-tree using pcl (c++))--> uzaklık hesabı -> ilişki matrisi
+
 """

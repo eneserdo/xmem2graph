@@ -201,7 +201,16 @@ def main(argv):
                 blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
         
             if record_frames:
-                raise NotImplementedError
+
+                np.save("/home/enerd/catkin_ws/rgb_frame_kinect.npy", img1)
+                cv2.imwrite("/home/enerd/catkin_ws/rgb_frame_kinect.png", img1)
+                np.save("/home/enerd/catkin_ws/depth_frame_kinect.npy", img2)
+                cv2.imwrite("/home/enerd/catkin_ws/depth_frame_kinect.png", img2)
+                np.save("/home/enerd/catkin_ws/prediction_frame_kinect.npy", prediction)
+                cv2.imwrite("/home/enerd/catkin_ws/prediction_frame_kinect.png", prediction)
+                print("saved")
+                record_frames=False
+                # raise NotImplementedError
                 # i=i+1
                 # print("Recording: True")
                 # cv2.imwrite(os.path.join(color_dir, f"color_{i:0>6}.png"), img1)

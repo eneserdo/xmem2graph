@@ -38,6 +38,10 @@ def convert_from_uvd(u, v, d):
     cy=239.5
     f=525.0
 
+    scale=1
+
+    d*=scale
+
     x_over_z = (cx - u) / f
     y_over_z = (cy - v) / f
     z = d / np.sqrt(1. + x_over_z**2 + y_over_z**2)

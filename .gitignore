@@ -3,6 +3,5 @@ sil.py
 *.py[cod]
 .vscode
 .json
-TODO
 init_roslaunch.sh
 rosbags/

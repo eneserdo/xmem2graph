@@ -133,10 +133,10 @@ def main(argv):
         if argv[1]=="mask_ready":
             set_mask=True
             mask_ready=True 
-    except IndexError:
+    except RuntimeError:
         pass
 
-    rosrunner = RosRun("asus")
+    rosrunner = RosRun("kinect")
     shift_x=0
     shift_y=0
     record_frames=False
@@ -202,15 +202,15 @@ def main(argv):
         
             if record_frames:
 
-                np.save("/home/enerd/catkin_ws/rgb_frame_kinect.npy", img1)
-                cv2.imwrite("/home/enerd/catkin_ws/rgb_frame_kinect.png", img1)
-                np.save("/home/enerd/catkin_ws/depth_frame_kinect.npy", img2)
-                cv2.imwrite("/home/enerd/catkin_ws/depth_frame_kinect.png", img2)
-                np.save("/home/enerd/catkin_ws/prediction_frame_kinect.npy", prediction)
-                cv2.imwrite("/home/enerd/catkin_ws/prediction_frame_kinect.png", prediction)
-                print("saved")
-                record_frames=False
-                # raise NotImplementedError
+                # np.save("/home/enerd/catkin_ws/rgb_frame_kinect.npy", img1)
+                # cv2.imwrite("/home/enerd/catkin_ws/rgb_frame_kinect.png", img1)
+                # np.save("/home/enerd/catkin_ws/depth_frame_kinect.npy", img2)
+                # cv2.imwrite("/home/enerd/catkin_ws/depth_frame_kinect.png", img2)
+                # np.save("/home/enerd/catkin_ws/prediction_frame_kinect.npy", prediction)
+                # cv2.imwrite("/home/enerd/catkin_ws/prediction_frame_kinect.png", prediction)
+                # print("saved")
+                # record_frames=False
+                raise NotImplementedError
                 # i=i+1
                 # print("Recording: True")
                 # cv2.imwrite(os.path.join(color_dir, f"color_{i:0>6}.png"), img1)

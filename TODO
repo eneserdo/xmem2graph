@@ -1,9 +1,4 @@
 """
-
-# max_distance=100 yaptık ama depth kattıktan sonra uygun bir değer tespit edilmeli
-
-# biyerde depth[0,1 gibibişey yaptım sanırım]
-
 # "getMinDistBtwPoints" fonksiyonunda kd tree kullanılabilirmis
 
 # impute şart hale geldi çünkü x ve y de ordan hesaplanıyo
@@ -15,4 +10,11 @@
 # Belki de:
 rgb,depth --(python)--> mask, depth --(c++)--> pcl --(kd-tree using pcl (c++))--> uzaklık hesabı -> ilişki matrisi
 
+# benim kullandığım koordinat sistemi ile literatürdeki farklı, matrisden 
+  değer çekerkenki kullanım ile gerçek yada resim uzayındaki kullanım farklı!
+
+# İki point cloud arasındaki uzaklık nasıl hesaplanmalı?
+# # Noisy olduğunu hesaba katarak bir ortalama alınmalı (En yakın n noktanın ortalaması?)
+# # Hem içteki hem sınırdaki noktaları kullandığın
+# #  
 """

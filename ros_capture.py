@@ -15,7 +15,7 @@ class RosRun:
         
         """
 
-        if camera=="asus":
+        if camera=="kinect" or camera=="kinect1":
             self.img_topic1 = "/camera/rgb/image_rect_color"
             self.img_topic2 = "/camera/depth_registered/sw_registered/image_rect_raw"
         
@@ -23,12 +23,14 @@ class RosRun:
             self.img_topic1 = "/kinect2/qhd/image_color_rect"
             self.img_topic2 = "/kinect2/qhd/image_depth_rect"
         
-        elif camera=="kinect1" or camera=="kinect":
-            self.img_topic1 = "/camera_front/rgb/image_color"  # /camera_front/depth_registered/sw_registered/image_rect_raw
-            self.img_topic2 = "/camera_front/depth/image_raw"
+        # elif camera=="kinect1" or camera=="kinect":
+        #     self.img_topic1 = "/camera_front/rgb/image_color"  # /camera_front/depth_registered/sw_registered/image_rect_raw
+        #     self.img_topic2 = "/camera_front/depth/image_raw"
+
         elif camera=="zed":
             self.img_topic1 = "/zed/zed_node/rgb/image_rect_color"
             self.img_topic2 = "/zed/zed_node/depth/depth_registered"
+            
         else:
             raise ValueError("Unknown camera!")
         

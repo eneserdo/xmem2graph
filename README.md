@@ -1,10 +1,15 @@
 # xmem2graph
 
-[RITM](https://github.com/saic-vul/ritm_interactive_segmentation) -> gets the initial mask
+This code mainly depends on following works:
+[(RITM)](https://github.com/saic-vul/ritm_interactive_segmentation) Reviving Iterative Training with Mask Guidance for Interactive Segmentation
+[XMem](https://github.com/hkchengrex/XMem/): Long-Term Video Object Segmentation with an Atkinson-Shiffrin Memory Model [ECCV 2022]
 
-[XMem](https://github.com/hkchengrex/XMem/) -> tracks the selected objects
 
-Then the code creates a relation graph
+Then the code creates a relation graph. I used relations from [ref]:
+
+Static: contact, above, below, left, right, front, behind, inside, surround
+Dynamic: moving together, halting together, fixed moving together, getting close, moving apart, stable 
+
 
 
 ## Setting up the environment
@@ -39,8 +44,12 @@ conda env create -f environment.yml
 
 # To run 
 
-Do not forget to change camera type
+Do not forget to change camera type (kinect and ZED are available only. For others modify the ros_capture.py file)
 
 ```
 python real_time.py
 ```
+
+Press <kbd>m</kbd> to set the initial mask then the magic begins
+
+

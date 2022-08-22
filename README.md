@@ -1,8 +1,8 @@
 # xmem2graph
 
 This code mainly depends on following works:
-[(RITM)](https://github.com/saic-vul/ritm_interactive_segmentation) Reviving Iterative Training with Mask Guidance for Interactive Segmentation
-[XMem](https://github.com/hkchengrex/XMem/): Long-Term Video Object Segmentation with an Atkinson-Shiffrin Memory Model [ECCV 2022]
+* [(RITM)](https://github.com/saic-vul/ritm_interactive_segmentation) Reviving Iterative Training with Mask Guidance for Interactive Segmentation [CoRR 2021]
+* [XMem](https://github.com/hkchengrex/XMem/): Long-Term Video Object Segmentation with an Atkinson-Shiffrin Memory Model [ECCV 2022]
 
 
 Then the code creates a relation graph. I used relations from [ref]:

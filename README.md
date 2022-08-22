@@ -5,7 +5,7 @@ This code mainly depends on following works:
 * [XMem](https://github.com/hkchengrex/XMem/): Long-Term Video Object Segmentation with an Atkinson-Shiffrin Memory Model [ECCV 2022]
 
 
-Then the code creates a relation graph. I used relations from [ref]:
+This repo creates a relation graph using selected objects from the scene in real-time. I used relations from enriched semantic event chain [1]:
 
 Static: contact, above, below, left, right, front, behind, inside, surround
 Dynamic: moving together, halting together, fixed moving together, getting close, moving apart, stable 
@@ -21,7 +21,7 @@ Do not forget to install ROS.
 conda create -n x2g python=3.8
 conda activate x2g
 
-# Install CUDA and cuDNN, and ADD TO THE PATH!
+# Install CUDA and cuDNN, and add to the path
 conda install -c conda-forge cudatoolkit=11.3 cudnn=8.4.1
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
 
@@ -31,18 +31,20 @@ pip install -r requirements.txt
 
 # (Optional) ROS related packages
 conda install -c conda-forge ros-rospy rospkg
-
-# To get pre-trained models
-./download.sh  
 ```
-
-OR use yml file:
+OR use yml file
 
 ```
 conda env create -f environment.yml
 ```
 
-# To run 
+To get pre-trained models
+```
+./download.sh  
+```
+
+
+## To run 
 
 Do not forget to change camera type (kinect and ZED are available only. For others modify the ros_capture.py file)
 

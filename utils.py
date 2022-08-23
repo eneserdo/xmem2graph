@@ -80,7 +80,7 @@ class Coord:
         return (other.realCoord-self.realCoord)/np.linalg.norm(self.realCoord-other.realCoord)
 
     def __repr__(self) -> str:
-        return f"({round(self.x)}, {round(self.x)}, {round(self.x)})"
+        return f"({round(self.x)}, {round(self.y)}, {round(self.z)})"
 
     def update_d(self, d) -> None:
         self.d = d
@@ -91,7 +91,7 @@ class Coord:
 def print_debug(**kwargs):
     print("Error:")
     for key, value in kwargs.items():
-        print(f"{key} = {value}")
+        print(f"{key} = {value}, type: {type(value)}")
 
 
 def arrayAndDepthToCoord(array, depth_map):
@@ -107,8 +107,15 @@ def arrayAndDepthToCoord(array, depth_map):
 
 
 def almost_equal(a, b, eps=1e-5):
-    assert (isinstance(a, float) or isinstance(a, int))
-    assert (isinstance(b, float) or isinstance(b, int))
+    # assert (isinstance(a, float) or isinstance(a, int))
+    # assert (isinstance(b, float) or isinstance(b, int))
+    # if not ((isinstance(a, float) or isinstance(a, int))):
+    #     print_debug(a=a)
+        
+    # if not ((isinstance(b, float) or isinstance(b, int))):
+    #     print_debug(b=b)
+
+    # nedense bazıları np int olarak geliyo
 
     if abs(a-b)<eps:
         return True

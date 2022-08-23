@@ -135,7 +135,7 @@ def main(argv):
         if argv[1]=="mask_ready":
             set_mask=True
             mask_ready=True 
-    except RuntimeError:
+    except IndexError:
         pass
 
     rosrunner = RosRun("kinect")

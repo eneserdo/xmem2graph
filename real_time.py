@@ -38,6 +38,7 @@ def putNames(graphImg, cntrs):
         cv2.putText(graphImg, label_map[id], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
 
 
+prev_coord=None
 def print_coord(event,x,y, flags, param):
     # global img2
     if event == cv2.EVENT_LBUTTONDOWN:
@@ -46,6 +47,11 @@ def print_coord(event,x,y, flags, param):
         print(x,y)
         x1,y1,z1=convert_from_uvd(x, y, graphImage[int(y),int(x)])
         print(f"({np.round(x1, 2)}, {np.round(y1, 2)}, {np.round(z1, 2)})")	
+        if prev_coord is not None:
+            print("dist: ", np.sqrt(np.sum((prev_coord-np.array([x1, y1, z1]))**2)))
+
+        prev_coord=np.array([x1, y1, z1])
+
 
 # def getSingleCenterFromMask(pred, depth):
 def _getSingleCenterFromMask(pred, depth):
@@ -187,12 +193,12 @@ def main(argv):
                 visualization = overlay_davis(img1, prediction)
 
                 cv2.namedWindow("vis")
-                cv2.setMouseCallback('vis', print_coord)
                 cv2.imshow("vis", visualization)
 
                 cv2.namedWindow("graphImage")
-                cv2.createTrackbar('check_threshold','graphImage',50,750,nothing)
-                cv2.createTrackbar('touch_threshold','graphImage',15,100,nothing)
+                cv2.setMouseCallback('graphImage', print_coord)
+                cv2.createTrackbar('check_threshold','graphImage',200,750,nothing)
+                cv2.createTrackbar('touch_threshold','graphImage',80,100,nothing)
                 cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
                 run_xmem=True
 

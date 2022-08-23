@@ -13,6 +13,8 @@ rgb,depth --(python)--> mask, depth --(c++)--> pcl --(kd-tree using pcl (c++))--
 # benim kullandığım koordinat sistemi ile literatürdeki farklı, matrisden 
   değer çekerkenki kullanım ile gerçek yada resim uzayındaki kullanım farklı!
 
+# TABLE RELATIONS !!!
+
 # İki point cloud arasındaki uzaklık nasıl hesaplanmalı?
 # # Noisy olduğunu hesaba katarak bir ortalama alınmalı (En yakın n noktanın ortalaması?)
 # # Hem içteki hem sınırdaki noktaları kullandığın

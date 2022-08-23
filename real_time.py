@@ -35,8 +35,7 @@ ZOOM_COEF=1.5
 
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
-        cv2.putText(graphImg, label_map[id], (center.v - 15 , center.u - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
-    return
+        cv2.putText(graphImg, label_map[id], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
 
 
 def print_coord(event,x,y, flags, param):
@@ -45,8 +44,8 @@ def print_coord(event,x,y, flags, param):
         x=x/ZOOM_COEF
         y=y/ZOOM_COEF
         print(x,y)
-        x1,y1,z1=convert_from_uvd(y, x, img2[int(y),int(x)])
-        print(f"({round(x1[0], 2)}, {round(y1[0], 2)}, {round(z1[0], 2)})")	
+        x1,y1,z1=convert_from_uvd(x, y, img2[int(y),int(x)])
+        print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
 
 # def getSingleCenterFromMask(pred, depth):
 def _getSingleCenterFromMask(pred, depth):
@@ -61,7 +60,7 @@ def _getSingleCenterFromMask(pred, depth):
 
     # return np.array([cY, cX, depth[cY, cX][0]])
     # return np.array([cY, cX])
-    return Coord(cY, cX, depth[cY, cX][0])
+    return Coord(cX, cY, depth[cY, cX][0])
 
 
 # def getOrderedCenters(pred, depth, display=False):
@@ -81,6 +80,9 @@ def getOrderedCenters(pred, depth):
 
 
 def adapt_mask(mask_name):
+    """
+    XMem requires mask image to have unique values of [0, 1, 2 ... num_obj]
+    """
     mask_image = np.array(Image.open(mask_name))
     uniques = np.unique(mask_image)
     print(uniques)
@@ -285,8 +287,6 @@ def main(argv):
 
             if key==ord('l'):
                 graph_show_labels = not graph_show_labels
-
-                graph_show_labels
 
             if key==ord('t'):
                 shift_y=0

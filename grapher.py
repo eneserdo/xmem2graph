@@ -50,7 +50,7 @@ def getMinDistBtwPoints(points1, points2):
     return p1_min, p2_min, minDist
 
 
-def getN_MinDistBtwPoints(points1, points2, N=10):
+def getN_MinDistsBtwPoints(points1, points2, N=6):
     
     dist_array=np.ones((len(points1), len(points2)))*np.inf
 
@@ -66,9 +66,9 @@ def getN_MinDistBtwPoints(points1, points2, N=10):
 
     
     # return np.sort(dist_array.flatten())[:5]
-    plt.hist(dist_array.flatten(), bins=100, range=(0,100))
-    plt.show()
-    return 100
+    # plt.hist(dist_array.flatten(), bins=100, range=(0,100))
+    # plt.show()
+    return np.mean(np.sort(dist_array.flatten())[:N])
 
 
 def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element: int = EVERY_NTH_ELEMENT):

@@ -306,11 +306,11 @@ class GraphDrawer:
 
                 if touch_threshold > distance:
                     cv2.line(graphImage, (first_center.u, first_center.v),(second_center.u, second_center.v), (20, 100, 90), 3)
-                    cv2.putText(graphImage, f"{distance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20, 50, 150), 1)
+                    cv2.putText(graphImage, f"{distance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (20, 50, 200), 1)
 
                 # if their center is closer than the threshold then they are candidate for "touch"
                 elif check_threshold > distance:
-                    cv2.putText(graphImage, f"{distance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20, 50, 150), 1)
+                    cv2.putText(graphImage, f"{distance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (20, 50, 200), 1)
 
                     # candidate
                     cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
@@ -319,8 +319,8 @@ class GraphDrawer:
                     closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, (mask == int(second_id))*1, second_center, depth, graphImage)
 
                     if touch_threshold > minDist:
-                        cv2.line(graphImage, (first_center.v, first_center.u), (second_center.v, second_center.u), (20, 100, 90), 3)
-                        cv2.line(graphImage, (closest_p1.v, closest_p1.u), (closest_p2.v, closest_p2.u), (20, 100, 90), 1)
+                        cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
+                        cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
 
         for _id in obj_ids:

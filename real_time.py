@@ -284,6 +284,8 @@ def main(argv):
             
             if key==ord('b'):
                 show_blended = not show_blended
+                if not show_blended:
+                    cv2.destroyWindow("blended")
 
             if key==ord('l'):
                 graph_show_labels = not graph_show_labels

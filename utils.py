@@ -17,6 +17,10 @@ class Timer:
     def end_and_print(self, no_print=False):
         elapsed = perf_counter()-self.start_time
         self.queue.append(elapsed)
+
+        if len(self.queue)>self.queue_length:
+            self.queue.pop(0)
+
         val = np.round(1/np.mean(np.array(self.queue)), 2)
         if not no_print:
             print(self.name+"FPS: ", val)

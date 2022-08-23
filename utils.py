@@ -34,7 +34,7 @@ class Timer:
 
 def convert_from_uvd(u, v, d):
     """
-    *———— x(u)
+    +———— x(u)
     |
     |
     y(v)  

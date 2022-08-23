@@ -44,8 +44,8 @@ def print_coord(event,x,y, flags, param):
         x=x/ZOOM_COEF
         y=y/ZOOM_COEF
         print(x,y)
-        x1,y1,z1=convert_from_uvd(x, y, img2[int(y),int(x)])
-        print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
+        x1,y1,z1=convert_from_uvd(x, y, graphImage[int(y),int(x)])
+        print(f"({np.round(x1, 2)}, {np.round(y1, 2)}, {np.round(z1, 2)})")	
 
 # def getSingleCenterFromMask(pred, depth):
 def _getSingleCenterFromMask(pred, depth):
@@ -105,7 +105,7 @@ def nothing(x):
 
 
 def main(argv):
-    global img2
+    global graphImage
     torch.set_grad_enabled(False)
 
     # default configuration
@@ -302,5 +302,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    img2=None
+    graphImage=None
     main(sys.argv)

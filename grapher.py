@@ -8,10 +8,12 @@ from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, al
 
 EVERY_NTH_ELEMENT = 10
 SUBSAMPLING_DEGREE = np.pi/2
+MIN_INSIDE=10
+SUBSET_INSIDE=0.002
+
+
 
 # from matplotlib.colors import to_rgb, CSS4_COLORS
-
-
 def colorMap(name):
     raise NotImplementedError
 
@@ -84,7 +86,7 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
     ### First Mask ###
 
     # Get boundary points
-    # points1=mask2BoundaryLocs(obj_mask1, depth)
+    boundary_points1=mask2BoundaryLocs(obj_mask1, depth)
 
     # get subset
     # unit_vector1=center1.realUnitVectorTo(center2)
@@ -103,17 +105,18 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
     points1_v, points1_u = np.where(obj_mask1*5 > 1)
     points1 = np.concatenate([points1_v.reshape(-1, 1), points1_u.reshape(-1, 1)], axis=1)
 
-    subset1 = np.random.choice(len(points1), max(int(len(points1)*0.005), 10))
+    subset1 = np.random.choice(len(points1), max(int(len(points1)*SUBSET_INSIDE), MIN_INSIDE))
     points1_subset = points1[subset1]
-    # points1_subset=points1
     points1_subset = arrayAndDepthToCoord(points1_subset, depth)
 
-    for p in points1_subset:
+
+    all_points1=boundary_points1+points1_subset
+    for p in all_points1:
         cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
 
     ### Second Mask ###
 
-    # points2=mask2BoundaryLocs(obj_mask2, depth)
+    boundary_points2=mask2BoundaryLocs(obj_mask2, depth)
     # unit_vector2 = -unit_vector1
 
     # related_indicies2=[]
@@ -130,7 +133,7 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
 
     points2_v, points2_u = np.where(obj_mask2*5 > 1)
     points2 = np.concatenate([points2_v.reshape(-1, 1), points2_u.reshape(-1, 1)], axis=1)
-    subset2 = np.random.choice(len(points2), max(int(len(points2)*0.001), 10))
+    subset2 = np.random.choice(len(points2), max(int(len(points2)*SUBSET_INSIDE), MIN_INSIDE))
     points2_subset = points2[subset2]
     # points2_subset=points2
     points2_subset = arrayAndDepthToCoord(points2_subset, depth)
@@ -140,12 +143,13 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
         print(points2)
         raise ValueError
 
-    for p in points2_subset:
+    all_points2=boundary_points2+points2_subset
+    for p in all_points2:
         cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
 
     # points1_subset.append(center1)
     # points2_subset.append(center2)
-    closest1, closest2, minDist = getMinDistBtwPoints(points1_subset, points2_subset)
+    closest1, closest2, minDist = getMinDistBtwPoints(all_points1, all_points2)
     # cv2.line(graphImage, (int(closest1[1]), int(closest1[0])), (int(closest2[1]), int(closest2[0])), (20,100,90), 1)
 
     return closest1, closest2, minDist
@@ -355,7 +359,7 @@ class TableRelation:
             obj_mask=(mask==i)*1
 
             all_points=mask2BoundaryLocs(obj_mask)
-            
+
             # en alttaki n pointi seç
             # plane denklemine koyunca thresholdun kaç üstünü veriyo?
             # if condition:

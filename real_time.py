@@ -44,11 +44,11 @@ def print_coord(event,x,y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         x=x/ZOOM_COEF
         y=y/ZOOM_COEF
-        print(x,y)
+        print(round(x),round(y))
         x1,y1,z1=convert_from_uvd(x, y, img2.item((int(y),int(x))))
         print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
         if prev_coord is not None:
-            print("dist: ", np.sqrt(np.sum((prev_coord-np.array([x1, y1, z1]))**2)))
+            print("dist: ", np.round(np.sqrt(np.sum((prev_coord-np.array([x1, y1, z1]))**2))))
 
         prev_coord=np.array([x1, y1, z1])
 

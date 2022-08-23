@@ -18,5 +18,7 @@ rgb,depth --(python)--> mask, depth --(c++)--> pcl --(kd-tree using pcl (c++))--
 # İki point cloud arasındaki uzaklık nasıl hesaplanmalı?
 # # Noisy olduğunu hesaba katarak bir ortalama alınmalı (En yakın n noktanın ortalaması?)
 # # Hem içteki hem sınırdaki noktaları kullandığın
-# #  
+# #
+# 
+# Sqrt doğru mu? hepsinde var mı?  
 """

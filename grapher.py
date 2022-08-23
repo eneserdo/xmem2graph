@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from math import sqrt
 from scipy.linalg import lstsq
-
+import matplotlib.pyplot as plt
 from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, almost_equal
 
 
@@ -48,6 +48,27 @@ def getMinDistBtwPoints(points1, points2):
                 p2_min = p2
 
     return p1_min, p2_min, minDist
+
+
+def getN_MinDistBtwPoints(points1, points2, N=10):
+    
+    dist_array=np.ones((len(points1), len(points2)))*np.inf
+
+    for i, p1 in enumerate(points1):
+        if almost_equal(p1.d, 0):
+            continue
+        
+        for j, p2 in enumerate(points2):
+            if almost_equal(p2.d, 0):
+                continue
+
+            dist_array[i,j]=p1.realDistanceTo(p2)
+
+    
+    # return np.sort(dist_array.flatten())[:5]
+    plt.hist(dist_array.flatten(), bins=100, range=(0,100))
+    plt.show()
+    return 100
 
 
 def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element: int = EVERY_NTH_ELEMENT):
@@ -149,10 +170,14 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
 
     # points1_subset.append(center1)
     # points2_subset.append(center2)
-    closest1, closest2, minDist = getMinDistBtwPoints(all_points1, all_points2)
-    # cv2.line(graphImage, (int(closest1[1]), int(closest1[0])), (int(closest2[1]), int(closest2[0])), (20,100,90), 1)
 
-    return closest1, closest2, minDist
+
+    # closest1, closest2, minDist = getMinDistBtwPoints(all_points1, all_points2)
+    # return closest1, closest2, minDist
+    
+    
+    minDist = getN_MinDistBtwPoints(all_points1, all_points2)
+    return None, None, minDist
 
 
 
@@ -324,7 +349,8 @@ class GraphDrawer:
 
                     if touch_threshold > minDist:
                         cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
-                        cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
+                        if closest_p1 is not None:
+                            cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
 
         for _id in obj_ids:

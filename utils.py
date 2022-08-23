@@ -70,6 +70,22 @@ class Coord:
         self.u = u
         self.v = v
         self.d = d
+
+        if not (isinstance(u, float) or isinstance(u, int)): 
+            print("Erorr")
+            print(f"{u=}")
+            raise ValueError
+
+        if not (isinstance(v, float) or isinstance(v, int)): 
+            print("Erorr")
+            print(f"{v=}")
+            raise ValueError
+
+        if not (isinstance(d, float) or isinstance(d, int)): 
+            print("Erorr")
+            print(f"{d=}")
+            raise ValueError
+
         self.x, self.y, self.z = convert_from_uvd(u, v, d)
         self.imgCoord = np.array([u, v])
         self.realCoord = np.array([self.x, self.y, self.z])
@@ -113,11 +129,11 @@ def arrayAndDepthToCoord(array, depth_map):
 def almost_equal(a, b, eps=1e-5):
     # assert (isinstance(a, float) or isinstance(a, int))
     # assert (isinstance(b, float) or isinstance(b, int))
-    # if not ((isinstance(a, float) or isinstance(a, int))):
-    #     print_debug(a=a)
+    if not ((isinstance(a, float) or isinstance(a, int))):
+        print_debug(a=a)
         
-    # if not ((isinstance(b, float) or isinstance(b, int))):
-    #     print_debug(b=b)
+    if not ((isinstance(b, float) or isinstance(b, int))):
+        print_debug(b=b)
 
     # nedense bazıları np int olarak geliyo
 

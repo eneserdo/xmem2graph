@@ -67,7 +67,7 @@ def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element
     bP_as_coord = []
     for bP in boundaryPoints:
         # bP[0]=v, bP[1]=u
-        bP_as_coord.append(Coord(bP[1], bP[0], depth[bP[0], bP[1]][0]))
+        bP_as_coord.append(Coord(bP[1], bP[0], depth.item((bP[0], bP[1]))))
 
     return bP_as_coord
 

@@ -53,7 +53,6 @@ def print_coord(event,x,y, flags, param):
         prev_coord=np.array([x1, y1, z1])
 
 
-# def getSingleCenterFromMask(pred, depth):
 def _getSingleCenterFromMask(pred, depth):
     """
         If pred has SINGLE segments
@@ -66,10 +65,9 @@ def _getSingleCenterFromMask(pred, depth):
 
     # return np.array([cY, cX, depth[cY, cX][0]])
     # return np.array([cY, cX])
-    return Coord(cX, cY, depth[cY, cX][0])
+    return Coord(cX, cY, depth.item((cY, cX)))
 
 
-# def getOrderedCenters(pred, depth, display=False):
 def getOrderedCenters(pred, depth):
 
     ids = np.unique(pred)[1:]

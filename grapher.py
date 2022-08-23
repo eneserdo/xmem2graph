@@ -258,7 +258,7 @@ class GraphDrawer:
                 raise ValueError
         else:
             for id_, center in curr_center.items():
-                self.movingAverageCenters[id_].d = (self.movingAverageCenters[id_].d*self.beta + (1-self.beta)*center.d).astype(np.int64)
+                self.movingAverageCenters[id_].d = self.movingAverageCenters[id_].d*self.beta + (1-self.beta)*center.d
 
             # for id_, center in curr_center.items():
             #     try:
@@ -355,11 +355,11 @@ class TableRelation:
             obj_mask=(mask==i)*1
 
             all_points=mask2BoundaryLocs(obj_mask)
-
+            
             # en alttaki n pointi seç
             # plane denklemine koyunca thresholdun kaç üstünü veriyo?
-            if condition:
-                cv2.putText(graphImage, f"on_table", (centers[i-1][1] - 5, center[i-1][0] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0,0,204), 1)
+            # if condition:
+                # cv2.putText(graphImage, f"on_table", (centers[i-1][1] - 5, center[i-1][0] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0,0,204), 1)
 
 
         

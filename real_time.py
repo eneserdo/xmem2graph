@@ -66,7 +66,7 @@ def _getSingleCenterFromMask(pred, depth):
     # return np.array([cY, cX, depth[cY, cX][0]])
     # return np.array([cY, cX])
     return Coord(cX, cY, depth.item((cY, cX)))
-
+     
 
 def getOrderedCenters(pred, depth):
 

@@ -73,17 +73,17 @@ class Coord:
 
         if not (isinstance(u, float) or isinstance(u, int)): 
             print("Erorr")
-            print(f"{u=}")
+            print(f"{u=}, {type(u)=}")
             raise ValueError
 
         if not (isinstance(v, float) or isinstance(v, int)): 
             print("Erorr")
-            print(f"{v=}")
+            print(f"{v=}, {type(v)=}")
             raise ValueError
 
         if not (isinstance(d, float) or isinstance(d, int)): 
             print("Erorr")
-            print(f"{d=}")
+            print(f"{d=}, {type(d)=}")
             raise ValueError
 
         self.x, self.y, self.z = convert_from_uvd(u, v, d)
@@ -116,12 +116,13 @@ def print_debug(**kwargs):
 
 def arrayAndDepthToCoord(array, depth_map):
     assert array.shape[1] == 2
+    assert len(depth_map.shape) == 2
     # array consists of (v,u) pairs.
     coord_arr = []
 
     for a in array:
         # a[0]=v, a[1]=u
-        coord_arr.append(Coord(a[1], a[0], depth_map[a[0], a[1]][0]))
+        coord_arr.append(Coord(a.item(1), a.item(0), depth_map.item((a[0], a[1]))))
 
     return coord_arr
 

@@ -40,13 +40,13 @@ def putNames(graphImg, cntrs):
 
 prev_coord=None
 def print_coord(event,x,y, flags, param):
-    # global img2
+    global prev_coord
     if event == cv2.EVENT_LBUTTONDOWN:
         x=x/ZOOM_COEF
         y=y/ZOOM_COEF
         print(x,y)
-        x1,y1,z1=convert_from_uvd(x, y, graphImage[int(y),int(x)])
-        print(f"({np.round(x1, 2)}, {np.round(y1, 2)}, {np.round(z1, 2)})")	
+        x1,y1,z1=convert_from_uvd(x, y, img2.item((int(y),int(x))))
+        print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
         if prev_coord is not None:
             print("dist: ", np.sqrt(np.sum((prev_coord-np.array([x1, y1, z1]))**2)))
 
@@ -109,7 +109,7 @@ def nothing(x):
 
 
 def main(argv):
-    global graphImage
+    global img2
     torch.set_grad_enabled(False)
 
     # default configuration
@@ -306,5 +306,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    graphImage=None
+    img2=None
     main(sys.argv)

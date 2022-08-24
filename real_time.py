@@ -19,7 +19,7 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 
 # My libs
 from ros_capture import RosRun, shift, getBlended
-from grapher import GraphDrawer
+from grapher import GraphDrawer, TableRelation
 from utils import Timer, convert_from_uvd, Coord
 
 # Global variables
@@ -49,6 +49,7 @@ def print_coord(event,x,y, flags, param):
         print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
         if prev_coord is not None:
             print("dist: ", np.round(np.sqrt(np.sum((prev_coord-np.array([x1, y1, z1]))**2))))
+            print("distToTable: ", tableRelation._distToPoint(x1,y1,z1))
 
         prev_coord=np.array([x1, y1, z1])
 
@@ -109,7 +110,7 @@ def nothing(x):
 
 
 def main(argv):
-    global img2
+    global img2, tableRelation
     torch.set_grad_enabled(False)
 
     # default configuration
@@ -201,7 +202,7 @@ def main(argv):
                 run_xmem=True
 
                 graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95)
-
+                tableRelation=TableRelation(img1, img2)
             
             if show_blended:
                 blended=getBlended(img1, img2)
@@ -235,10 +236,10 @@ def main(argv):
                 touch_threshold = cv2.getTrackbarPos('touch_threshold','graphImage')
                 table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
                 
-                start_graph=perf_counter()
-                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, depth=img2, show_labels=graph_show_labels)
+                # start_graph=perf_counter()
+                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=img2, show_labels=graph_show_labels)
                 putNames(graphImage, centers)
-
+                # graphDrawer.getTableRelations()
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
                 visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_AREA)
@@ -307,4 +308,5 @@ def main(argv):
 
 if __name__ == '__main__':
     img2=None
+    tableRelation=None
     main(sys.argv)

@@ -26,6 +26,63 @@ def colorMap(name):
     # except:
     #     return (255*to_rgb(CSS4_COLORS[colorName[name]])[::-1]).astype(np.uint8)
 
+class TableRelation:
+    def __init__(self, img, depth, num_obj):
+
+        self._selectPoints(img, depth) # sets self.table_points
+
+        assert self.table_points.shape[0]>=3
+
+        ones = np.ones((self.table_points.shape[0])).reshape(-1,1)
+        zeros = np.zeros((self.table_points.shape[0])).reshape(-1,1)
+
+        A = np.concatenate([self.table_points, ones], axis=1) # [x, y, z, 1]
+
+        # z= a*x + b*y + c
+        p, _, _, _ = lstsq(A, zeros)
+
+        self._distToPoint = lambda x, y, z: (x*p[0]+ y*p[1]+ z*p[2]+1)/(sqrt(p[0]**2+p[1]**2+ p[2]**2))
+        
+        # self.relations=np.zeros((num_obj))
+        self.min_dists=np.ones((num_obj))*np.inf
+        self.num_obj=num_obj
+
+    # def setRelationValue(self, obj_id, val):
+    #     self.relations[obj_id]=val
+
+    def setMinDistFromTable(self, points, obj_id):
+        minDist=np.inf
+        for p in points:
+            dist=self.plane(p.x, p.y, p.z)
+            if dist<minDist:
+                minDist=self.plane(p)
+        
+        self.min_dists[obj_id]=minDist
+
+
+    def _selectPoints(self, img_point_select, depth):
+        ### inner func ###
+        def click_event(event, x, y, flags, params):
+            if event == cv2.EVENT_LBUTTONDOWN:
+
+                cv2.circle(img_point_select, (x, y), 2, (0, 51, 255), -1)
+                cv2.imshow('image', img_point_select)
+                x1, y1, z1=convert_from_uvd(int(x), int(y), depth.item((int(y), int(x))))
+                print(f"({round(x1,1)}, {round(y1,1)}, {round(z1,1)}) is selected")
+                self.table_points=np.append(self.table_points, [x1, y1, z1])
+        ### inner func ###
+
+        self.table_points=np.array([])
+        cv2.destrotAllWindows()
+        cv2.imshow("Choose points on table", img_point_select)
+
+        cv2.setMouseCallback('Choose points on table', click_event)
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        self.table_points=self.table_points.reshape(-1, 3)
+
+
 
 def getMinDistBtwPoints(points1, points2):
     minDist = np.inf
@@ -78,8 +135,7 @@ def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element
     """
 
     _, thresh = cv2.threshold((obj_mask*3).astype(np.uint8), 1, 255, 0)
-    contours, _ = cv2.findContours(
-        thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
     # If more htan one, combines them
     contours = np.vstack(contours)
@@ -95,9 +151,9 @@ def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element
     return bP_as_coord
 
 
-def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord, depth, graphImage):
+def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, center2: Coord, second_id, depth, graphImage, table):
     """
-        From masks, calculates the boundary points. 
+        From masks, calculates the boundary points and inner points. 
         Then, sub-samples them. Finally measure the min distance between two point groups
     """
 
@@ -172,17 +228,19 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, obj_mask2, center2: Coord
     # points2_subset.append(center2)
 
 
+    ### TABLE RELATION ###
+    # table.setMinDistFromTable(points1, first_id)
+    # if table.num_obj==second_id[0]+1:
+    #     table.setMinDistFromTable(points2, second_id)
+
     # closest1, closest2, minDist = getMinDistBtwPoints(all_points1, all_points2)
     # return closest1, closest2, minDist
     
-    
-    minDist = getN_MinDistBtwPoints(all_points1, all_points2)
+    minDist = getN_MinDistsBtwPoints(all_points1, all_points2)
     return None, None, minDist
 
 
 
-def closestDistFromTableToObject():
-    pass
 
 class GraphDrawer:
     """
@@ -301,7 +359,7 @@ class GraphDrawer:
             # for k in (self.movingAverageCenters.keys()-curr_center.keys()):
             #     del self.movingAverageCenters[k]
 
-    def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, depth, show_labels=True):
+    def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_labels=True):
 
         self._impute_and_push(curr_centers)
         self._movingAverage(curr_centers)
@@ -318,8 +376,6 @@ class GraphDrawer:
         else:
             graphImage = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
 
-        # max_distance=sqrt(mask.shape[1]**2+mask.shape[0]**2+400**2)
-        # max_distance=10
 
         for first_id in obj_ids:
             first_center = centers[first_id]
@@ -330,7 +386,6 @@ class GraphDrawer:
                 if second_id <= first_id:
                     continue
 
-                # distance=int(255*dist(first_center, second_center)/max_distance)
                 distance = round(first_center.realDistanceTo(second_center), 1)
 
                 if touch_threshold > distance:
@@ -345,7 +400,7 @@ class GraphDrawer:
                     cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
 
                     # if their closest points are touching they are touched for sure
-                    closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, (mask == int(second_id))*1, second_center, depth, graphImage)
+                    closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, first_id, (mask == int(second_id))*1, second_center, second_id, depth, graphImage)
 
                     if touch_threshold > minDist:
                         cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
@@ -361,35 +416,10 @@ class GraphDrawer:
 
         return graphImage
 
-
-class TableRelation:
-    def __init__(self, table_points):
-        assert table_points.shape[1]==3
-        assert table_points.shape[0]>=3
-
-        ones = np.ones((table_points.shape[0])).reshape(-1,1)
-
-        A = np.concatenate([table_points[:,0:2], ones], axis=1)
-        z=table_points[:,2]
-
-        # z= a*x + b*y + c
-        p, _, _, _ = lstsq(A, z)
-
-        self.plane=lambda x, y, z: x*p[0]+ y*p[1]+ z*p[2]
-
-
-    def getTableRelations(mask, centers:dict, graphImage):
-        num_obj=np.unique(mask)
-
-        for i in range(1, 1+num_obj):
-            obj_mask=(mask==i)*1
-
-            all_points=mask2BoundaryLocs(obj_mask)
-
-            # en alttaki n pointi seç
-            # plane denklemine koyunca thresholdun kaç üstünü veriyo?
-            # if condition:
-                # cv2.putText(graphImage, f"on_table", (centers[i-1][1] - 5, center[i-1][0] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0,0,204), 1)
-
-
-        
+    # def setTablePlane(self, img, depth):
+    #     # Call once
+    #     self.table_relations=TableRelation(img, depth)
+    
+    # def getTableRelations(self):
+    #     # Call to show on table relation
+    #     return self.table_relations.relations

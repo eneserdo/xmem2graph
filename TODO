@@ -21,4 +21,8 @@ rgb,depth --(python)--> mask, depth --(c++)--> pcl --(kd-tree using pcl (c++))--
 # #
 # 
 # Sqrt doğru mu? hepsinde var mı?  
+
+Point sayısını düşür
+ZED i kullan!
+
 """

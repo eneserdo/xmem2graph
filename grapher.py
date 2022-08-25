@@ -93,8 +93,8 @@ class TableRelation:
     def _test(self, table_thrshld, img, depth):
         img_test=np.zeros_like(img)
         
-        for i in img_test.shape[0]: 
-            for j in img_test.shape[1]: 
+        for i in range(img_test.shape[0]): 
+            for j in range(img_test.shape[1]): 
                 x1, y1, z1=convert_from_uvd(int(j), int(i), depth.item((int(i), int(j))))
                 
                 if table_thrshld > self._distToPoint(x1, y1, z1):

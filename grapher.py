@@ -67,11 +67,17 @@ class TableRelation:
         ### inner func ###
         def click_event(event, x, y, flags, params):
             if event == cv2.EVENT_LBUTTONDOWN:
-                cv2.circle(img_point_select, (x, y), 2, (0, 51, 255), -1)
-                cv2.imshow("Choose points on table", img_point_select)
-                x1, y1, z1=convert_from_uvd(int(x), int(y), depth.item((int(y), int(x))))
-                print(f"({round(x1,1)}, {round(y1,1)}, {round(z1,1)}) is selected")
-                self.table_points=np.append(self.table_points, [x1, y1, z1])
+                d_=depth.item((int(y), int(x)))
+                if not almost_equal(d_, 0):
+                    cv2.circle(img_point_select, (x, y), 2, (0, 255, 51), -1)
+                    cv2.imshow("Choose points on table", img_point_select)
+                    x1, y1, z1=convert_from_uvd(int(x), int(y), d_)
+                    print(f"({round(x1,1)}, {round(y1,1)}, {round(z1,1)}) is selected")
+                    self.table_points=np.append(self.table_points, [x1, y1, z1])
+                else:
+                    cv2.circle(img_point_select, (x, y), 2, (0, 51, 255), -1)
+                    cv2.imshow("Choose points on table", img_point_select)
+
         ### inner func ###
 
         self.table_points=np.array([])

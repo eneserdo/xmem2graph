@@ -242,10 +242,13 @@ def main(argv):
                 # graphDrawer.getTableRelations()
                 
                 visualization = overlay_davis(img1, prediction)  # frame:=img1
-                visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_AREA)
-                graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_AREA)
+                visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
+                graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
 
                 visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                
+                tableRelation._test(table_threshold, img1, img2)
+                
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
             else:

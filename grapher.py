@@ -89,6 +89,22 @@ class TableRelation:
         cv2.waitKey(0)
         self.table_points=self.table_points.reshape(-1, 3)
         cv2.destroyWindow("Choose points on table")
+    
+    def _test(self, table_thrshld, img, depth):
+        img_test=np.zeros_like(img)
+        
+        for i in img_test.shape[0]: 
+            for j in img_test.shape[1]: 
+                x1, y1, z1=convert_from_uvd(int(j), int(i), depth.item((int(i), int(j))))
+                
+                if table_thrshld > self._distToPoint(x1, y1, z1):
+                    img_test[i, j]=[70, 20, 250]
+
+        img_test = cv2.resize(img_test, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+        cv2.imshow("Table: img_test", img_test)
+
+
+
 
 
 

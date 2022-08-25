@@ -1,8 +1,7 @@
 import rospy
 import numpy as np
 from sensor_msgs.msg import Image as Img_Msg
-import sys
-
+from cv_bridge import CvBridge
 # sys.path.remove('/opt/ros/melodic/lib/python2.7/dist-packages')
 import cv2
 # sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
@@ -14,7 +13,7 @@ class RosRun:
         Example Usage:
         
         """
-
+        self.camera=camera
         if camera=="kinect" or camera=="kinect1":
             self.img_topic1 = "/camera/rgb/image_rect_color"
             self.img_topic2 = "/camera/depth_registered/sw_registered/image_rect_raw"
@@ -38,14 +37,20 @@ class RosRun:
         self.temp_img2 = None
         self.img_ready1 = False
         self.img_ready2 = False
+        self.br=CvBridge()
 
     
     def imgCallback1(self, data):
-        self.temp_img1 = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)    
+        self.temp_img1 = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)
+        # self.temp_img1 = self.br.imgmsg_to_cv2(data, "passthrough")    
         self.img_ready1 = True
 
     def imgCallback2(self, data):
-        self.temp_img2 = np.frombuffer(data.data, dtype=np.uint16).reshape(data.height, data.width)    
+        if self.camera=="zed":
+            self.temp_img2 = np.frombuffer(data.data, dtype=np.float32).reshape(data.height, data.width)    
+        else:
+            self.temp_img2 = np.frombuffer(data.data, dtype=np.uint16).reshape(data.height, data.width)    
+        # self.temp_img2 = self.br.imgmsg_to_cv2(data, "passthrough")
         self.img_ready2 = True
 
 

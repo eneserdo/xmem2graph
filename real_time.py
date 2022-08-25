@@ -143,9 +143,18 @@ def main(argv):
     except IndexError:
         pass
 
-    rosrunner = RosRun("kinect")
-    shift_x=0
-    shift_y=0
+    try:
+        shift_x=int(argv[2]) 
+        shift_y=int(argv[3])
+    except IndexError:
+        shift_x=0
+        shift_y=0
+        pass
+    
+    camera_type="zed"
+    rosrunner = RosRun(camera_type)
+    # shift_x=0
+    # shift_y=0
     record_frames=False
     run_xmem=False
     show_blended=False
@@ -160,6 +169,11 @@ def main(argv):
     with torch.cuda.amp.autocast(enabled=True):
 
         for temp_img1, temp_img2 in rosrunner.frameGenerator():
+            if camera_type=="zed":
+                temp_img2=np.where(np.isnan(temp_img2), 0, temp_img2)
+                temp_img2=np.where(temp_img2==np.inf, -1, temp_img2)
+                temp_img2=np.where(temp_img2==-1, np.max(temp_img2), temp_img2)
+                temp_img2=((2**16-1)*temp_img2/(np.max(temp_img2)-np.min(temp_img2))).astype(np.uint16)
 
             timer.start()
 
@@ -167,9 +181,9 @@ def main(argv):
                 break
 
             # print("="*50)
-            
             img1=shift((temp_img1).copy(), shift_x, shift_y)
             img2=shift(temp_img2, -shift_x, -shift_y)
+            cv2.imshow("img2", img2)
 
 
             if set_mask:
@@ -252,7 +266,7 @@ def main(argv):
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
             else:
-                cv2.imshow('image2', img2*5)
+                cv2.imshow('image2', img2)
                 cv2.imshow('image1', img1)
             
             fps=timer.end_and_print(no_print=True)

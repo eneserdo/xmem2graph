@@ -91,7 +91,7 @@ class TableRelation:
         cv2.destroyWindow("Choose points on table")
     
     def _test(self, table_thrshld, img, depth):
-        img_test=np.zeros_like(img)
+        img_test=img.copy()
         
         for i in range(img_test.shape[0]): 
             for j in range(img_test.shape[1]): 

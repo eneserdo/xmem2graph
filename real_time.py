@@ -202,7 +202,7 @@ def main(argv):
                 run_xmem=True
 
                 graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95)
-                tableRelation=TableRelation(img1, img2)
+                tableRelation=TableRelation(img1, img2, num_objects)
             
             if show_blended:
                 blended=getBlended(img1, img2)

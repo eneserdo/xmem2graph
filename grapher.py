@@ -33,15 +33,18 @@ class TableRelation:
 
         assert self.table_points.shape[0]>=3
 
+        # zeros = np.zeros((self.table_points.shape[0])).reshape(-1,1)
+        
+        # Since "A@[x, y, z, 1] = 0" has a trivial solution (p=0), instead I used "A@[x, y, 1] = z" 
         ones = np.ones((self.table_points.shape[0])).reshape(-1,1)
-        zeros = np.zeros((self.table_points.shape[0])).reshape(-1,1)
-
-        A = np.concatenate([self.table_points, ones], axis=1) # [x, y, z, 1]
+        A = np.concatenate([self.table_points[:,0:2], ones], axis=1) 
+        z=self.table_points[:, 2]
 
         # z= a*x + b*y + c
-        p, _, _, _ = lstsq(A, zeros)
-
-        self._distToPoint = lambda x, y, z: (x*p[0]+ y*p[1]+ z*p[2]+1)/(sqrt(p[0]**2+p[1]**2+ p[2]**2))
+        self.p, _, _, _ = lstsq(A, z)
+        print("p: ", self.p)
+        # self._distToPoint = lambda x, y, z: (x*p[0]+ y*p[1]+ z*p[2]+p[3])/(sqrt(p[0]**2+p[1]**2+ p[2]**2))
+        self._distToPoint = lambda _x, _y, _z: abs(_x*self.p[0] + _y*self.p[1] + self.p[2] -1*_z)/(sqrt(self.p[0]**2 + self.p[1]**2 + 1))
         
         # self.relations=np.zeros((num_obj))
         self.min_dists=np.ones((num_obj))*np.inf
@@ -64,23 +67,22 @@ class TableRelation:
         ### inner func ###
         def click_event(event, x, y, flags, params):
             if event == cv2.EVENT_LBUTTONDOWN:
-
                 cv2.circle(img_point_select, (x, y), 2, (0, 51, 255), -1)
-                cv2.imshow('image', img_point_select)
+                cv2.imshow("Choose points on table", img_point_select)
                 x1, y1, z1=convert_from_uvd(int(x), int(y), depth.item((int(y), int(x))))
                 print(f"({round(x1,1)}, {round(y1,1)}, {round(z1,1)}) is selected")
                 self.table_points=np.append(self.table_points, [x1, y1, z1])
         ### inner func ###
 
         self.table_points=np.array([])
-        cv2.destrotAllWindows()
+        # cv2.destroyAllWindows()
         cv2.imshow("Choose points on table", img_point_select)
 
         cv2.setMouseCallback('Choose points on table', click_event)
 
         cv2.waitKey(0)
-        cv2.destroyAllWindows()
         self.table_points=self.table_points.reshape(-1, 3)
+        cv2.destroyWindow("Choose points on table")
 
 
 
@@ -151,7 +153,7 @@ def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element
     return bP_as_coord
 
 
-def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, center2: Coord, second_id, depth, graphImage, table):
+def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, center2: Coord, second_id, depth, graphImage):
     """
         From masks, calculates the boundary points and inner points. 
         Then, sub-samples them. Finally measure the min distance between two point groups

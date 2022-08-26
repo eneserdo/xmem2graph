@@ -50,7 +50,7 @@ def print_coord(event,x,y, flags, param):
         x=x/ZOOM_COEF
         y=y/ZOOM_COEF
         print(round(x),round(y))
-        x1,y1,z1=convert_from_uvd(x, y, img2.item((int(y),int(x))))
+        x1,y1,z1=convert_from_uvd(x, y, depth_img.item((int(y),int(x))))
         print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
         if prev_coord is not None:
             print("dist: ", np.round(np.sqrt(np.sum((prev_coord-np.array([x1, y1, z1]))**2))))
@@ -119,7 +119,7 @@ def nothing(x):
 
 
 def main(argv):
-    global img2, tableRelation
+    global depth_img, tableRelation
     torch.set_grad_enabled(False)
 
     # default configuration for XMem
@@ -167,8 +167,6 @@ def main(argv):
     run_xmem=False
     show_blended=False
     graph_show_labels=True
-    i=0
-    j=0
     fps=0
     timer=Timer()
 
@@ -176,48 +174,48 @@ def main(argv):
 
     with torch.cuda.amp.autocast(enabled=True):
 
-        for temp_img1, temp_img2 in rosrunner.frameGenerator():
+        for temp_rgb, temp_depth in rosrunner.frameGenerator():
             if cfg.CAMERA_NAME=="ZED":
-                temp_img2=np.where(np.isnan(temp_img2), 0, temp_img2)
-                temp_img2=np.where(temp_img2==np.inf, -1, temp_img2)
-                temp_img2=np.where(temp_img2==-1, np.max(temp_img2), temp_img2)
-                temp_img1=temp_img1[:,:,:-1] # To exclude alpha channel
+                temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
+                temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
+                temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
+                temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
 
             timer.start()
 
-            if temp_img1 is None:
+            if temp_rgb is None:
                 break
 
             # print("="*50)
-            img1=shift((temp_img1).copy(), shift_x, shift_y)
-            img2=shift(temp_img2, -shift_x, -shift_y)
+            rgb_img=shift((temp_rgb).copy(), shift_x, shift_y)
+            depth_img=shift(temp_depth, -shift_x, -shift_y)
 
             if set_mask:
                 cv2.destroyAllWindows()
-                print("Wait for the interactive segmentation screen")
                 set_mask=False
 
                 if not mask_ready:
-                    cv2.imwrite("./ritm_interactive_segmentation/initial.png", img1)
+                    print("Wait for the interactive segmentation screen")
+                    cv2.imwrite("./ritm_interactive_segmentation/initial.png", rgb_img)
                     subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
 
                 num_objects, mask = adapt_mask('./ritm_interactive_segmentation/mask.png')
                 processor = InferenceCore(network, config=config)
                 processor.set_all_labels(range(1, num_objects+1)) # consecutive labels
                 
-                frame_torch, _ = image_to_torch(img1, device=device) # frame:=img1
+                frame_torch, _ = image_to_torch(rgb_img, device=device) # frame:=img1
                 mask_torch = index_numpy_to_one_hot_torch(mask, num_objects+1).to(device)
                 prediction = processor.step(frame_torch, mask_torch[1:])
                 prediction = torch_prob_to_numpy_mask(prediction)
-                visualization = overlay_davis(img1, prediction)
+                visualization = overlay_davis(rgb_img, prediction)
 
                 cv2.namedWindow("vis")
                 cv2.imshow("vis", visualization)
 
                 cv2.namedWindow("graphImage")
                 cv2.setMouseCallback('graphImage', print_coord)
-                cv2.createTrackbar('check_threshold','graphImage',200,750,nothing)
-                cv2.createTrackbar('touch_threshold','graphImage',80,100,nothing)
+                cv2.createTrackbar('check_threshold','graphImage',300,750,nothing)
+                cv2.createTrackbar('touch_threshold','graphImage',30,100,nothing)
                 cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
                 run_xmem=True
 
@@ -225,7 +223,7 @@ def main(argv):
                 #tableRelation=TableRelation(img1, img2, num_objects)
             
             if show_blended:
-                blended=getBlended(img1, img2)
+                blended=getBlended(rgb_img, depth_img)
                 blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
         
             if record_frames:
@@ -246,22 +244,23 @@ def main(argv):
 
             
             if run_xmem:
-                frame_torch, _ = image_to_torch(img1, device=device)
+                frame_torch, _ = image_to_torch(rgb_img, device=device)
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
-                centers=getOrderedCenters(prediction, img2)
+                centers=getOrderedCenters(prediction, depth_img)
                 # print("Centers:", centers)
 
                 check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')
                 touch_threshold = cv2.getTrackbarPos('touch_threshold','graphImage')
                 table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
                 
-                # start_graph=perf_counter()
-                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=img2, show_labels=graph_show_labels)
+                start_graph=perf_counter()
+                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_labels=graph_show_labels)
                 putNames(graphImage, centers)
+                print("graph time:", round(perf_counter()-start_graph, 3))
                 # graphDrawer.getTableRelations()
                 
-                visualization = overlay_davis(img1, prediction)  # frame:=img1
+                visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
                 visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
                 graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
 
@@ -273,12 +272,12 @@ def main(argv):
                 cv2.imshow("vis", visualization)
             else:
                 if cfg.CAMERA_NAME=="ZED":
-                    img2_=((2**16-1)*img2/(np.max(img2)-np.min(img2))).astype(np.uint16)
+                    img2_=((2**16-1)*depth_img/(np.max(depth_img)-np.min(depth_img))).astype(np.uint16)
                 elif cfg.CAMERA_NAME=="KINECT":
-                    img2_=img2*20
+                    img2_=depth_img*20
 
                 cv2.imshow('image2', img2_)
-                cv2.imshow('image1', img1)
+                cv2.imshow('image1', rgb_img)
             
             fps=timer.end_and_print(no_print=True)
 
@@ -338,6 +337,6 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    img2=None
+    depth_img=None
     tableRelation=None
     main(sys.argv)

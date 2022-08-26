@@ -19,7 +19,7 @@ class RosRun:
             self.rgb_topic = cfg.KINECT.RGB_TOPIC
             self.depth_topic = cfg.KINECT.DEPTH_TOPIC
         
-        elif cfg.CAMERA_NAME=="zed":
+        elif cfg.CAMERA_NAME=="ZED":
             self.rgb_topic = "/zed/zed_node/rgb/image_rect_color"
             self.depth_topic = "/zed/zed_node/depth/depth_registered"
     

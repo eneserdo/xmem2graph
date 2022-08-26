@@ -154,7 +154,7 @@ def main(argv):
         shift_y=0
         pass
     
-    rosrunner = RosRun(cfg.CAMERA_NAME)
+    rosrunner = RosRun()
     # shift_x=0
     # shift_y=0
     record_frames=False

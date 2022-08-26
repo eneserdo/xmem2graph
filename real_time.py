@@ -175,6 +175,7 @@ def main(argv):
                 temp_img2=np.where(np.isnan(temp_img2), 0, temp_img2)
                 temp_img2=np.where(temp_img2==np.inf, -1, temp_img2)
                 temp_img2=np.where(temp_img2==-1, np.max(temp_img2), temp_img2)
+                temp_img1=temp_img1[:,:,:-1] # To exclude alpha channel
 
             timer.start()
 
@@ -184,8 +185,6 @@ def main(argv):
             # print("="*50)
             img1=shift((temp_img1).copy(), shift_x, shift_y)
             img2=shift(temp_img2, -shift_x, -shift_y)
-            cv2.imshow("img2", img2)
-
 
             if set_mask:
                 cv2.destroyAllWindows()

@@ -1,71 +1,73 @@
+import cv2
 import rospy
 import numpy as np
+from utils import load_config
 from sensor_msgs.msg import Image as Img_Msg
-from cv_bridge import CvBridge
-# sys.path.remove('/opt/ros/melodic/lib/python2.7/dist-packages')
-import cv2
-# sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
-     
+
+# from cv_bridge import CvBridge
+ 
+
+cfg=load_config("./config.yml")
 
 class RosRun:
-    def __init__(self, camera="asus"):
+    def __init__(self):
         """
         Example Usage:
         
         """
-        self.camera=camera
-        if camera=="kinect" or camera=="kinect1":
-            self.img_topic1 = "/camera/rgb/image_rect_color"
-            self.img_topic2 = "/camera/depth_registered/sw_registered/image_rect_raw"
+        if cfg.CAMERA_NAME=="KINECT":
+            self.rgb_topic = cfg.KINECT.RGB_TOPIC
+            self.depth_topic = cfg.KINECT.DEPTH_TOPIC
         
-        elif camera=="kinect2":
-            self.img_topic1 = "/kinect2/qhd/image_color_rect"
-            self.img_topic2 = "/kinect2/qhd/image_depth_rect"
+        elif cfg.CAMERA_NAME=="zed":
+            self.rgb_topic = "/zed/zed_node/rgb/image_rect_color"
+            self.depth_topic = "/zed/zed_node/depth/depth_registered"
+    
+        else:
+            raise ValueError("Unknown camera!")
+        
+        # elif camera=="kinect2":
+        #     self.img_topic1 = "/kinect2/qhd/image_color_rect"
+        #     self.img_topic2 = "/kinect2/qhd/image_depth_rect"
         
         # elif camera=="kinect1" or camera=="kinect":
         #     self.img_topic1 = "/camera_front/rgb/image_color"  # /camera_front/depth_registered/sw_registered/image_rect_raw
         #     self.img_topic2 = "/camera_front/depth/image_raw"
 
-        elif camera=="zed":
-            self.img_topic1 = "/zed/zed_node/rgb/image_rect_color"
-            self.img_topic2 = "/zed/zed_node/depth/depth_registered"
-            
-        else:
-            raise ValueError("Unknown camera!")
         
-        self.temp_img1 = None
-        self.temp_img2 = None
-        self.img_ready1 = False
-        self.img_ready2 = False
-        self.br=CvBridge()
+        self.temp_rgb = None
+        self.temp_depth = None
+        self.rgb_ready = False
+        self.depth_ready = False
+        # self.br=CvBridge()
 
     
     def imgCallback1(self, data):
-        self.temp_img1 = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)
+        self.temp_rgb = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)
         # self.temp_img1 = self.br.imgmsg_to_cv2(data, "passthrough")    
-        self.img_ready1 = True
+        self.rgb_ready = True
 
     def imgCallback2(self, data):
-        if self.camera=="zed":
-            self.temp_img2 = np.frombuffer(data.data, dtype=np.float32).reshape(data.height, data.width)    
-        else:
-            self.temp_img2 = np.frombuffer(data.data, dtype=np.uint16).reshape(data.height, data.width)    
+        if cfg.CAMERA_NAME=="ZED":
+            self.temp_depth = np.frombuffer(data.data, dtype=np.float32).reshape(data.height, data.width)    
+        elif cfg.CAMERA_NAME=="KINECT":
+            self.temp_depth = np.frombuffer(data.data, dtype=np.uint16).reshape(data.height, data.width)    
         # self.temp_img2 = self.br.imgmsg_to_cv2(data, "passthrough")
-        self.img_ready2 = True
+        self.depth_ready = True
 
 
     def frameGenerator(self):
         rospy.init_node('listener', anonymous=True)
-        rospy.Subscriber(self.img_topic1, Img_Msg, self.imgCallback1)
-        rospy.Subscriber(self.img_topic2, Img_Msg, self.imgCallback2)
+        rospy.Subscriber(self.rgb_topic, Img_Msg, self.imgCallback1)
+        rospy.Subscriber(self.depth_topic, Img_Msg, self.imgCallback2)
         print("Waiting...")
         
 
         while not rospy.is_shutdown():       
-            if self.img_ready1 and self.img_ready2:
-                self.img_ready1=False
-                self.img_ready2=False
-                yield self.temp_img1, self.temp_img2
+            if self.rgb_ready and self.depth_ready:
+                self.rgb_ready=False
+                self.depth_ready=False
+                yield self.temp_rgb, self.temp_depth
             
         
         yield None, None

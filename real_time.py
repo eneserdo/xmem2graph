@@ -20,7 +20,7 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord
+from utils import Timer, convert_from_uvd, Coord, load_config
 
 # Global variables
 label_map={1: "hand",
@@ -31,6 +31,8 @@ label_map={1: "hand",
            6: "hand"}
 
 ZOOM_COEF=1.5
+
+cfg=load_config("./config.yml")
 
 
 def putNames(graphImg, cntrs):
@@ -90,7 +92,7 @@ def adapt_mask(mask_name):
     """
     mask_image = np.array(Image.open(mask_name))
     uniques = np.unique(mask_image)
-    print(uniques)
+    # print(uniques)
 
     num_obj = len(uniques) - 1
 
@@ -101,8 +103,9 @@ def adapt_mask(mask_name):
 
     mask_image = new_mask.astype(np.uint8).copy()
 
-    print(np.unique(mask_image))
+    # print(np.unique(mask_image))
     num_obj = len(np.unique(mask_image)) - 1
+    print("Mask is ready")
     return num_obj, mask_image
 
 def nothing(x):
@@ -113,7 +116,7 @@ def main(argv):
     global img2, tableRelation
     torch.set_grad_enabled(False)
 
-    # default configuration
+    # default configuration for XMem
     config = {
         'top_k': 30,
         'mem_every': 5,
@@ -151,8 +154,7 @@ def main(argv):
         shift_y=0
         pass
     
-    camera_type="zed"
-    rosrunner = RosRun(camera_type)
+    rosrunner = RosRun(cfg.CAMERA_NAME)
     # shift_x=0
     # shift_y=0
     record_frames=False
@@ -169,11 +171,10 @@ def main(argv):
     with torch.cuda.amp.autocast(enabled=True):
 
         for temp_img1, temp_img2 in rosrunner.frameGenerator():
-            if camera_type=="zed":
+            if cfg.CAMERA_NAME=="ZED":
                 temp_img2=np.where(np.isnan(temp_img2), 0, temp_img2)
                 temp_img2=np.where(temp_img2==np.inf, -1, temp_img2)
                 temp_img2=np.where(temp_img2==-1, np.max(temp_img2), temp_img2)
-                temp_img2=((2**16-1)*temp_img2/(np.max(temp_img2)-np.min(temp_img2))).astype(np.uint16)
 
             timer.start()
 
@@ -266,7 +267,12 @@ def main(argv):
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
             else:
-                cv2.imshow('image2', img2)
+                if cfg.CAMERA_NAME=="ZED":
+                    img2_=((2**16-1)*img2/(np.max(img2)-np.min(img2))).astype(np.uint16)
+                elif cfg.CAMERA_NAME=="KINECT":
+                    img2_=img2*20
+
+                cv2.imshow('image2', img2_)
                 cv2.imshow('image1', img1)
             
             fps=timer.end_and_print(no_print=True)

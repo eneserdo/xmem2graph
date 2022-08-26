@@ -1,0 +1,29 @@
+# CAMERA_NAME: "ZED" # or "KINECT"
+CAMERA_NAME: ZED # or "KINECT"  
+
+ZED:
+  f: 334.14288330078125
+  cx: 301.9004821777344
+  cy: 179.2681884765625
+  SCALE: 1000
+  DEPTH_TOPIC: "/zed/zed_node/depth/depth_registered"
+  RGB_TOPIC: "/zed/zed_node/rgb/image_rect_color"
+
+KINECT:
+  f: 525.0
+  cx: 319.5
+  cy: 239.5
+  SCALE: 1
+  DEPTH_TOPIC: "/camera/depth_registered/sw_registered/image_rect_raw"
+  RGB_TOPIC: "/camera/rgb/image_rect_color"
+
+#CUSTOM_CAMERA:
+  # f:
+  # cx:
+  # cy:
+  # SCALE:
+  # DEPTH_TOPIC:
+  # RGB_TOPIC:
+
+
+# LABEL_MAP: 0

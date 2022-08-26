@@ -1,7 +1,30 @@
 from time import perf_counter
 import numpy as np
 from math import sqrt
+import yaml
+from easydict import EasyDict
 
+
+def load_config(config_path):
+    with open(config_path, 'r') as f:
+        cfg = yaml.safe_load(f)
+    return EasyDict(cfg)
+
+
+# Global variables
+cfg=load_config("./config.yml")
+
+if cfg.CAMERA_NAME=="ZED":
+    cx=cfg.ZED.cx
+    cy=cfg.ZED.cy
+    f=cfg.ZED.f
+    scale = cfg.ZED.SCALE
+
+elif cfg.CAMERA_NAME=="KINECT":
+    cx=cfg.KINECT.cx
+    cy=cfg.KINECT.cy
+    f=cfg.KINECT.f
+    scale = cfg.KINECT.SCALE
 
 class Timer:
     def __init__(self, name="", queue_length=10):
@@ -27,10 +50,6 @@ class Timer:
         return val
 
 
-# ZED K matrix:
-# [334.14288330078125, 0.0, 301.9004821777344,
-#  0.0, 334.14288330078125, 179.2681884765625,
-#   0.0, 0.0, 1.0]
 
 def convert_from_uvd(u, v, d):
     """
@@ -41,17 +60,6 @@ def convert_from_uvd(u, v, d):
     |
     y(v)  
     """
-    # ZED
-    # cx=301.9004821777344
-    # cy=179.2681884765625
-    # f=334.14288330078125
-
-    # Kinect
-    cx = 319.5
-    cy = 239.5
-    f = 525.0
-
-    scale = 1
     d *= scale
 
     x_over_z = (u - cx) / f
@@ -137,8 +145,6 @@ def almost_equal(a, b, eps=1e-5):
         
     if not ((isinstance(b, float) or isinstance(b, int))):
         print_debug(b=b)
-
-    # nedense bazıları np int olarak geliyo
 
     if abs(a-b)<eps:
         return True

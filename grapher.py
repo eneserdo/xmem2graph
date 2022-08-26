@@ -175,7 +175,7 @@ def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element
     return bP_as_coord
 
 
-def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, center2: Coord, second_id, depth, graphImage):
+def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, center2: Coord, second_id, depth, graphImage, show_labels):
     """
         From masks, calculates the boundary points and inner points. 
         Then, sub-samples them. Finally measure the min distance between two point groups
@@ -212,8 +212,10 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, cent
 
 
     all_points1=boundary_points1+points1_subset
-    for p in all_points1:
-        cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
+
+    if show_labels:
+        for p in all_points1:
+            cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
 
     ### Second Mask ###
 
@@ -245,8 +247,10 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, cent
         raise ValueError
 
     all_points2=boundary_points2+points2_subset
-    for p in all_points2:
-        cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
+
+    if show_labels:
+        for p in all_points2:
+            cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
 
     # points1_subset.append(center1)
     # points2_subset.append(center2)
@@ -418,25 +422,28 @@ class GraphDrawer:
 
                 # if their center is closer than the threshold then they are candidate for "touch"
                 elif check_threshold > distance:
-                    cv2.putText(graphImage, f"{distance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (20, 50, 200), 1)
 
                     # candidate
                     cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
 
                     # if their closest points are touching they are touched for sure
-                    closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, first_id, (mask == int(second_id))*1, second_center, second_id, depth, graphImage)
+                    closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, first_id, (mask == int(second_id))*1, second_center, second_id, depth, graphImage, show_labels)
+                    
 
                     if touch_threshold > minDist:
                         cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
                         if closest_p1 is not None:
                             cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
+                    
+                    cv2.putText(graphImage, f"{round(minDist)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
 
+        
         for _id in obj_ids:
             center = centers[_id]
             cv2.circle(graphImage, (center.u, center.v), 3, (0, 51, 255), -1)
-
-            cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
+            if show_labels:
+                cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
         return graphImage
 

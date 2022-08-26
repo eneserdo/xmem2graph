@@ -51,7 +51,10 @@ def print_coord(event,x,y, flags, param):
         print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
         if prev_coord is not None:
             print("dist: ", np.round(np.sqrt(np.sum((prev_coord-np.array([x1, y1, z1]))**2))))
-            print("distToTable: ", tableRelation._distToPoint(x1,y1,z1))
+            try:
+                print("distToTable: ", tableRelation._distToPoint(x1,y1,z1))
+            except:
+                pass
 
         prev_coord=np.array([x1, y1, z1])
 
@@ -216,7 +219,7 @@ def main(argv):
                 run_xmem=True
 
                 graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95)
-                tableRelation=TableRelation(img1, img2, num_objects)
+                #tableRelation=TableRelation(img1, img2, num_objects)
             
             if show_blended:
                 blended=getBlended(img1, img2)
@@ -261,7 +264,7 @@ def main(argv):
 
                 visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 
-                tableRelation._test(table_threshold, img1, img2)
+                #tableRelation._test(table_threshold, img1, img2)
                 
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)

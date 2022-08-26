@@ -26,4 +26,7 @@ KINECT:
   # RGB_TOPIC:
 
 
-# LABEL_MAP: 0
+LABEL_MAP:
+  1: "hand"
+  2: "pan"
+  3: "asd"

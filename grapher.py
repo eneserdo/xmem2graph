@@ -215,7 +215,7 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, cent
 
     if show_labels:
         for p in all_points1:
-            cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
+            cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
 
     ### Second Mask ###
 
@@ -250,7 +250,7 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, cent
 
     if show_labels:
         for p in all_points2:
-            cv2.circle(graphImage, (p.u, p.v), 2, (20, 100, 90), -1)
+            cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
 
     # points1_subset.append(center1)
     # points2_subset.append(center2)

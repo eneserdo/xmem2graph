@@ -27,6 +27,6 @@ KINECT:
 
 
 LABEL_MAP:
-  1: "hand"
-  2: "pan"
-  3: "asd"
+  "1": "hand"
+  "2": "pan"
+  "3": "asd"

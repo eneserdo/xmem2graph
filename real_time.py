@@ -37,7 +37,10 @@ cfg=load_config("./config.yml")
 
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
-        cv2.putText(graphImg, label_map[id], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
+        try:
+            cv2.putText(graphImg, cfg.LABEL_MAP[id], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
+        except:
+            cv2.putText(graphImg, "?", (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
 
 
 prev_coord=None
@@ -290,37 +293,40 @@ def main(argv):
             if key  == ord('q'): 
                 break 
 
-            if key==ord('d'):
+            elif key==ord('d'):
                 if shift_x<160:
                     shift_x=shift_x+1
             
-            if key==ord('a'):
+            elif key==ord('a'):
                 if shift_x>-160:
                     shift_x=shift_x-1
                     
-            if key==ord('s'):
+            elif key==ord('s'):
                 if shift_y<30:
                     shift_y=shift_y+1
                 
-            if key==ord('w'):
+            elif key==ord('w'):
                 if shift_y>-30:
                     shift_y=shift_y-1
             
-            if key==ord('r'):
+            elif key==ord('r'):
                 record_frames = not record_frames
 
-            if key==ord('m'):
+            elif key==ord('m'):
                 set_mask = True
             
-            if key==ord('b'):
+            elif key==ord('u'):
+                cfg=load_config("./config.yml")
+            
+            elif key==ord('b'):
                 show_blended = not show_blended
                 if not show_blended:
                     cv2.destroyWindow("blended")
 
-            if key==ord('l'):
+            elif key==ord('l'):
                 graph_show_labels = not graph_show_labels
 
-            if key==ord('t'):
+            elif key==ord('t'):
                 shift_y=0
                 shift_x=0
 

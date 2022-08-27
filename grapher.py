@@ -3,14 +3,15 @@ import numpy as np
 from math import sqrt
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
-from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, almost_equal
+from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, almost_equal, load_config
 
 
-EVERY_NTH_ELEMENT = 10
-SUBSAMPLING_DEGREE = np.pi/2
-MIN_INSIDE=10
-SUBSET_INSIDE=0.002
+cfg=load_config("./config.yml")
 
+# EVERY_NTH_ELEMENT = 10
+# SUBSAMPLING_DEGREE = np.pi/2
+# MIN_INSIDE=10
+# SUBSET_INSIDE=0.002
 
 
 # from matplotlib.colors import to_rgb, CSS4_COLORS
@@ -152,7 +153,7 @@ def getN_MinDistsBtwPoints(points1, points2, N=6):
     return np.mean(np.sort(dist_array.flatten())[:N])
 
 
-def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element: int = EVERY_NTH_ELEMENT):
+def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray):
     """
         Calculates the boundary points of the given mask (for single object), 
         then only choose every $(every_nth_element) th element
@@ -164,12 +165,13 @@ def mask2BoundaryLocs(obj_mask: np.ndarray, depth: np.ndarray, every_nth_element
     # If more htan one, combines them
     contours = np.vstack(contours)
 
-    boundaryPoints = contours[::every_nth_element, :, ::-1]
+    boundaryPoints = contours[::cfg.GRAPHER.EVERY_NTH_ELEMENT, :, ::-1]
     boundaryPoints = boundaryPoints.reshape(-1, 2)
 
     bP_as_coord = []
     for bP in boundaryPoints:
         # bP[0]=v, bP[1]=u
+        # if not almost_equal(depth.item((bP[0], bP[1])), 0):
         bP_as_coord.append(Coord(bP.item(1), bP.item(0), depth.item((bP[0], bP[1]))))
 
     return bP_as_coord
@@ -198,7 +200,7 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, cent
 
     #     curr_val=np.dot(from_center1_to_p, unit_vector1)
 
-    #     if curr_val>np.cos(SUBSAMPLING_DEGREE):
+    #     if curr_val>np.cos(cfg.GRAPHER.SUBSAMPLING_DEGREE*np.pi/180):
     #         related_indicies1.append(i)
 
     # points1_subset=[points1[i] for i in related_indicies1]
@@ -206,7 +208,7 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, cent
     points1_v, points1_u = np.where(obj_mask1*5 > 1)
     points1 = np.concatenate([points1_v.reshape(-1, 1), points1_u.reshape(-1, 1)], axis=1)
 
-    subset1 = np.random.choice(len(points1), max(int(len(points1)*SUBSET_INSIDE), MIN_INSIDE))
+    subset1 = np.random.choice(len(points1), max(int(len(points1)*cfg.GRAPHER.SUBSET_INSIDE), cfg.GRAPHER.MIN_INSIDE))
     points1_subset = points1[subset1]
     points1_subset = arrayAndDepthToCoord(points1_subset, depth)
 
@@ -229,14 +231,14 @@ def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, cent
 
     #     curr_val=np.dot(from_center2_to_p, unit_vector2)
 
-    #     if curr_val>np.cos(SUBSAMPLING_DEGREE):
+    #     if curr_val>np.cos(cfg.GRAPHER.SUBSAMPLING_DEGREE*np.pi/180):
     #         related_indicies2.append(i)
 
     # points2_subset=[points2[i] for i in related_indicies2]
 
     points2_v, points2_u = np.where(obj_mask2*5 > 1)
     points2 = np.concatenate([points2_v.reshape(-1, 1), points2_u.reshape(-1, 1)], axis=1)
-    subset2 = np.random.choice(len(points2), max(int(len(points2)*SUBSET_INSIDE), MIN_INSIDE))
+    subset2 = np.random.choice(len(points2), max(int(len(points2)*cfg.GRAPHER.SUBSET_INSIDE), cfg.GRAPHER.MIN_INSIDE))
     points2_subset = points2[subset2]
     # points2_subset=points2
     points2_subset = arrayAndDepthToCoord(points2_subset, depth)

@@ -43,6 +43,8 @@ To get pre-trained models
 ./download.sh  
 ```
 
+Install ZED or Kinect (OpenNi or freenect) package from their sources.
+
 
 ## To run 
 
@@ -54,4 +56,11 @@ python real_time.py
 
 Press <kbd>m</kbd> to set the initial mask then the magic begins
 
+## Note
 
+We experience alignment problem in between rgb and depth data while using Kinect camera. So we preferred ZED camera, which has no such a problem due to stereo cameras.
+
+If you are going to use ZED camera, please consider to change depth quality parameter to 4. Check out the following configuration file:
+```
+gedit path/to/workspace/zed-ros-wrapper/zed_wrapper/params/common.yaml
+```

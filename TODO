@@ -1,28 +1,18 @@
 """
 # "getMinDistBtwPoints" fonksiyonunda kd tree kullanılabilirmis
 
-# impute şart hale geldi çünkü x ve y de ordan hesaplanıyo
-
 # req file küçültülebilir?
-
-# "convert_from_uvd" de kullanılan scale tune edilmeli
 
 # Belki de:
 rgb,depth --(python)--> mask, depth --(c++)--> pcl --(kd-tree using pcl (c++))--> uzaklık hesabı -> ilişki matrisi
 
-# benim kullandığım koordinat sistemi ile literatürdeki farklı, matrisden 
-  değer çekerkenki kullanım ile gerçek yada resim uzayındaki kullanım farklı!
 
-# TABLE RELATIONS !!!
-
-# İki point cloud arasındaki uzaklık nasıl hesaplanmalı?
-# # Noisy olduğunu hesaba katarak bir ortalama alınmalı (En yakın n noktanın ortalaması?)
-# # Hem içteki hem sınırdaki noktaları kullandığın
-# #
-# 
 # Sqrt doğru mu? hepsinde var mı?  
 
-Point sayısını düşür
-ZED i kullan!
+distance hesabı yaparken d=0 ise ihmal edilsin
+
+Ros package olarak hazırla
+Yalnızca segmented pointcoud u yayınla.
+
 
 """

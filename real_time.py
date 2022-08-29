@@ -272,11 +272,11 @@ def main(argv):
                 cv2.imshow("vis", visualization)
             else:
                 if cfg.CAMERA_NAME=="ZED":
-                    img2_=((2**16-1)*depth_img/(np.max(depth_img)-np.min(depth_img))).astype(np.uint16)
+                    depth_img_=((2**16-1)*depth_img/(np.max(depth_img)-np.min(depth_img))).astype(np.uint16)
                 elif cfg.CAMERA_NAME=="KINECT":
-                    img2_=depth_img*20
+                    depth_img_=depth_img*20
 
-                cv2.imshow('image2', img2_)
+                cv2.imshow('image2', depth_img_)
                 cv2.imshow('image1', rgb_img)
             
             fps=timer.end_and_print(no_print=True)

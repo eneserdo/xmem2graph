@@ -27,5 +27,13 @@ KINECT:
 
 
 LABEL_MAP:
-  "1": "hand"
-  "2": "pan"
+  "1": "Table"
+  "2": "Bowl"
+
+
+
+GRAPHER:
+  EVERY_NTH_ELEMENT: 10
+  SUBSAMPLING_DEGREE: 180
+  MIN_INSIDE: 10
+  SUBSET_INSIDE: 0.002

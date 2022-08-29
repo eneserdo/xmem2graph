@@ -38,7 +38,7 @@ cfg=load_config("./config.yml")
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
         try:
-            cv2.putText(graphImg, cfg.LABEL_MAP[id], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
+            cv2.putText(graphImg, cfg.LABEL_MAP[str(id)], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
         except:
             cv2.putText(graphImg, "?", (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
 
@@ -119,7 +119,7 @@ def nothing(x):
 
 
 def main(argv):
-    global depth_img, tableRelation
+    global depth_img, tableRelation, cfg
     torch.set_grad_enabled(False)
 
     # default configuration for XMem

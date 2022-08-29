@@ -1,16 +1,15 @@
 import cv2
 import numpy as np
+import networkx as nx
 from math import sqrt
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, almost_equal
 
-
 EVERY_NTH_ELEMENT = 10
 SUBSAMPLING_DEGREE = np.pi/2
 MIN_INSIDE=10
 SUBSET_INSIDE=0.002
-
 
 
 # from matplotlib.colors import to_rgb, CSS4_COLORS
@@ -288,6 +287,21 @@ class GraphDrawer:
         self.movingAverageCenters = {}
         self.num_obj = num_obj
         self.beta = beta
+        self.relation_matrix=None
+
+        # For simple graph
+        self.G = nx.Graph()
+        self.ax = plt.gca()
+        self.ax.margins(0.20)
+        self.options = {
+            "font_size": 36,
+            "node_size": 3000,
+            "node_color": "white",
+            "edgecolors": "black",
+            "linewidths": 3,
+            "width": 3,
+        }
+        plt.axis("off")
 
         # self.avr_centers={}
         # self.avr_on = avr_on
@@ -386,6 +400,23 @@ class GraphDrawer:
             # # for unused keys (remove them)
             # for k in (self.movingAverageCenters.keys()-curr_center.keys()):
             #     del self.movingAverageCenters[k]
+    def _drawSimpleGraph(self):
+        self.G.clear()
+        plt.clf()
+        is_ok=False
+        #self.G.add_node(0)
+        for i in range(self.num_obj):
+            for j in range(i, self.num_obj):
+                if self.relation_matrix[i,j]==1:
+                    self.G.add_edge(i+1, j+1)
+                    is_ok=True
+
+        if is_ok:
+            random_pos = nx.random_layout(self.G, seed=42)
+            pos = nx.spring_layout(self.G, pos=random_pos)
+            nx.draw_networkx(self.G, pos, **self.options)
+            plt.pause(0.00001)
+
 
     def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_labels=True):
 
@@ -405,6 +436,8 @@ class GraphDrawer:
             graphImage = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
 
 
+        self.relation_matrix=np.zeros((self.num_obj, self.num_obj))
+        
         for first_id in obj_ids:
             first_center = centers[first_id]
 
@@ -417,6 +450,9 @@ class GraphDrawer:
                 distance = round(first_center.realDistanceTo(second_center), 1)
 
                 if touch_threshold > distance:
+                    self.relation_matrix[first_id-1, second_id-1]=1
+                    self.relation_matrix[second_id-1, first_id-1]=1
+
                     cv2.line(graphImage, (first_center.u, first_center.v),(second_center.u, second_center.v), (20, 100, 90), 3)
                     cv2.putText(graphImage, f"{distance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (20, 50, 200), 1)
 
@@ -431,7 +467,11 @@ class GraphDrawer:
                     
 
                     if touch_threshold > minDist:
+                        self.relation_matrix[first_id-1, second_id-1]=1
+                        self.relation_matrix[second_id-1, first_id-1]=1
+
                         cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
+
                         if closest_p1 is not None:
                             cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
@@ -445,6 +485,7 @@ class GraphDrawer:
             if show_labels:
                 cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
+        self._drawSimpleGraph()
         return graphImage
 
     # def setTablePlane(self, img, depth):
@@ -454,3 +495,5 @@ class GraphDrawer:
     # def getTableRelations(self):
     #     # Call to show on table relation
     #     return self.table_relations.relations
+
+

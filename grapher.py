@@ -7,11 +7,7 @@ import matplotlib.pyplot as plt
 from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, almost_equal, load_config
 
 
-EVERY_NTH_ELEMENT = 10
-SUBSAMPLING_DEGREE = np.pi/2
-MIN_INSIDE=10
-SUBSET_INSIDE=0.002
-
+cfg=load_config("./config.yml")
 
 
 # from matplotlib.colors import to_rgb, CSS4_COLORS

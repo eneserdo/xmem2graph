@@ -14,5 +14,6 @@ distance hesabı yaparken d=0 ise ihmal edilsin
 Ros package olarak hazırla
 Yalnızca segmented pointcoud u yayınla.
 
+graph stabilization
 
 """

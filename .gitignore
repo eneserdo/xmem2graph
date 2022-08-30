@@ -5,3 +5,5 @@ sil.py
 .json
 init_roslaunch.sh
 rosbags/
+deneme/
+deneme*.py

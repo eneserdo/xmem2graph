@@ -529,7 +529,14 @@ class StabileSimpleGraph:
             "width": 3,
         }
         
-        self.objNames=[cfg.LABEL_MAP[str(i)] for i in range(1,1+self.num_obj)]
+        self.objNames=[]
+        for i in range(1,1+self.num_obj):
+            try:
+                self.objNames.append(cfg.LABEL_MAP[str(i)])
+            except:
+                self.objNames.append("?")
+
+
         self.G=nx.empty_graph(self.objNames)
 
         self.pos = nx.circular_layout(self.G)

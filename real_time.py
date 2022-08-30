@@ -166,7 +166,7 @@ def main(argv):
     record_frames=False
     run_xmem=False
     show_blended=False
-    graph_show_labels=True
+    graph_show_details=True
     fps=0
     timer=Timer()
 
@@ -255,7 +255,7 @@ def main(argv):
                 table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
                 
                 start_graph=perf_counter()
-                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_labels=graph_show_labels)
+                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_details=graph_show_details)
                 putNames(graphImage, centers)
                 print("graph time:", round(perf_counter()-start_graph, 3))
                 # graphDrawer.getTableRelations()
@@ -323,7 +323,7 @@ def main(argv):
                     cv2.destroyWindow("blended")
 
             elif key==ord('l'):
-                graph_show_labels = not graph_show_labels
+                graph_show_details = not graph_show_details
 
             elif key==ord('t'):
                 shift_y=0

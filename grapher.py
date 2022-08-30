@@ -449,7 +449,7 @@ class GraphDrawer:
         pcl_dict={}
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
-            pcl_dict[id_]=self._getPCL(graphImage, (mask == int(first_id))*1, depth, show_details)
+            pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth, show_details)
 
         # In the future to implement multiprocessing, we need to modify following
 

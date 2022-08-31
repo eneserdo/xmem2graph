@@ -540,7 +540,33 @@ class StabileSimpleGraph:
         self.G=nx.empty_graph(self.objNames)
 
         self.pos = nx.circular_layout(self.G)
+        self.listOfRelationMatrix=[]
+        self.stabileRelationMatrix=np.zeros((num_obj, num_obj))
 
+    def _stabile(self, relation_matrix):
+        N=10
+        C=7
+        
+        # queue with lenght N
+        self.listOfRelationMatrix.append(relation_matrix)
+        if len(self.listOfRelationMatrix)>N:
+            self.listOfRelationMatrix.pop()
+
+        
+        for i in range(self.num_obj):
+            for j in range(i, self.num_obj):
+                temp=0
+                for t in range(N):
+                    if self.listOfRelationMatrix[t][i,j]==1:
+                        temp+=1
+                    
+                if temp>=C:
+                    self.stabileRelationMatrix[i,j]=1
+                    self.stabileRelationMatrix[j,i]=1
+
+    def update_cfg(self):
+        global cfg
+        cfg=load_config("./config.yml")
 
     def show(self, relation_matrix):
         # 
@@ -560,6 +586,9 @@ class StabileSimpleGraph:
         #     pos = nx.spring_layout(self.G, pos=random_pos)
         #     nx.draw_networkx(self.G, pos, **self.options)
         #     plt.pause(0.00001)
+
+        self._stabile(relation_matrix)
+        # TODO:relation matrix ->stabile relation
 
         self.G.remove_edges_from(list(self.G.edges()))
         plt.clf()

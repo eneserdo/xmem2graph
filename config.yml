@@ -29,6 +29,8 @@ KINECT:
 LABEL_MAP:
   "1": "hand"
   "2": "pan"
+  "3": "asd"
+  "4": "123123"
 
 
 GRAPHER:

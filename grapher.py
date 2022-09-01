@@ -423,8 +423,8 @@ class GraphDrawer:
         return allPoints
 
     def update_cfg(self):
-        global cfg
         cfg=load_config("./config.yml")
+        self.simpleGraph._update_cfg()
         
     def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_details=True):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
@@ -568,6 +568,17 @@ class SimpleStabileGraph:
                 if temp >= cfg.SIMPLEGRAPH.MIN_VISIBILITY:
                     self.stabileRelationMatrix[i,j]=1
                     self.stabileRelationMatrix[j,i]=1
+
+    def _update_cfg(self):
+        cfg=load_config("./config.yml")
+        self.objNames=[]
+        for i in range(1,1+self.num_obj):
+            try:
+                self.objNames.append(cfg.LABEL_MAP[str(i)])
+            except:
+                self.objNames.append(str(i))
+        self.G=nx.empty_graph(self.objNames)
+        self.pos = nx.circular_layout(self.G)
 
     def show(self, relation_matrix):
         # 

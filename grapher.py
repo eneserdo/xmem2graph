@@ -102,7 +102,6 @@ class TableRelation:
 
 
 
-
 def getMinDistBtwPoints(points1, points2):
     minDist = np.inf
     p1_min = None
@@ -181,99 +180,8 @@ def mask2InnerPoints(obj_mask: np.ndarray, depth: np.ndarray):
     return points_subset
 
 
-def closestDistanceBtwMasks(obj_mask1, center1: Coord, first_id, obj_mask2, center2: Coord, second_id, depth, graphImage, show_labels):
-    """
-        From masks, calculates the boundary points and inner points. 
-        Then, sub-samples them. Finally measure the min distance between two point groups
-    """
-
-    # IMPORTANT!: Instead of boundary points I used random points on mask,
-    # because edges of objects have very unreliable depth values
-
-    ### First Mask ###
-
-    # Get boundary points
-    boundary_points1=mask2BoundaryPoints(obj_mask1, depth)
-
-    # get subset
-    # unit_vector1=center1.realUnitVectorTo(center2)
-    # related_indicies1=[]
-    # for i,p in enumerate(points1):
-
-    #     from_center1_to_p=center1.realUnitVectorTo(p)
-
-    #     curr_val=np.dot(from_center1_to_p, unit_vector1)
-
-    #     if curr_val>np.cos(cfg.GRAPHER.SUBSAMPLING_DEGREE*np.pi/180):
-    #         related_indicies1.append(i)
-
-    # points1_subset=[points1[i] for i in related_indicies1]
-
-    points1_v, points1_u = np.where(obj_mask1*5 > 1)
-    points1 = np.concatenate([points1_v.reshape(-1, 1), points1_u.reshape(-1, 1)], axis=1)
-
-    subset1 = np.random.choice(len(points1), max(int(len(points1)*cfg.GRAPHER.SUBSET_INSIDE), cfg.GRAPHER.MIN_INSIDE))
-    points1_subset = points1[subset1]
-    points1_subset = arrayAndDepthToCoord(points1_subset, depth)
-
-
-    all_points1=boundary_points1+points1_subset
-
-    if show_labels:
-        for p in all_points1:
-            cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
-
-    ### Second Mask ###
-
-    boundary_points2=mask2BoundaryPoints(obj_mask2, depth)
-    # unit_vector2 = -unit_vector1
-
-    # related_indicies2=[]
-    # for i,p in enumerate(points2):
-
-    #     from_center2_to_p=center2.realUnitVectorTo(p)
-
-    #     curr_val=np.dot(from_center2_to_p, unit_vector2)
-
-    #     if curr_val>np.cos(cfg.GRAPHER.SUBSAMPLING_DEGREE*np.pi/180):
-    #         related_indicies2.append(i)
-
-    # points2_subset=[points2[i] for i in related_indicies2]
-
-    points2_v, points2_u = np.where(obj_mask2*5 > 1)
-    points2 = np.concatenate([points2_v.reshape(-1, 1), points2_u.reshape(-1, 1)], axis=1)
-    subset2 = np.random.choice(len(points2), max(int(len(points2)*cfg.GRAPHER.SUBSET_INSIDE), cfg.GRAPHER.MIN_INSIDE))
-    points2_subset = points2[subset2]
-    # points2_subset=points2
-    points2_subset = arrayAndDepthToCoord(points2_subset, depth)
-
-    if len(points2_subset) == 0:
-        print(points2_subset)
-        print(points2)
-        raise ValueError
-
-    all_points2=boundary_points2+points2_subset
-
-    if show_labels:
-        for p in all_points2:
-            cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
-
-    # points1_subset.append(center1)
-    # points2_subset.append(center2)
-
-
-    ### TABLE RELATION ###
-    # table.setMinDistFromTable(points1, first_id)
-    # if table.num_obj==second_id[0]+1:
-    #     table.setMinDistFromTable(points2, second_id)
-
-    # closest1, closest2, minDist = getMinDistBtwPoints(all_points1, all_points2)
-    # return closest1, closest2, minDist
-    
-    minDist = getAvrMinDistBtwPoints(all_points1, all_points2)
-    return None, None, minDist
-
-
+# def disPointToPCL(point, listOfPoints):
+#     return minDist
 
 
 class GraphDrawer:
@@ -296,7 +204,7 @@ class GraphDrawer:
         self.beta = beta
         self.relation_matrix=None
 
-        self.simpleGraph=SimpleStabileGraph(num_obj)
+        self.simpleGraph=SimpleStableGraph(num_obj)
 
         # self.avr_centers={}
         # self.avr_on = avr_on
@@ -425,6 +333,19 @@ class GraphDrawer:
     def update_cfg(self):
         cfg=load_config("./config.yml")
         self.simpleGraph._update_names()
+
+    def _testProximity(self, img, depth, id_, touch_threshold):
+        img_test=img.copy()
+
+        for i in range(img_test.shape[0]): 
+            for j in range(img_test.shape[1]): 
+                _,_, dist=getMinDistBtwPoints([Coord(int(j), int(i), depth.item((int(i), int(j))))], self.pcl_dict[str(id_)])
+                
+                if touch_threshold > dist:
+                    img_test[i, j]=[70, 20, 250]
+
+        img_test = cv2.resize(img_test, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+        cv2.imshow("img_test", img_test)
         
     def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_details=True):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
@@ -450,10 +371,10 @@ class GraphDrawer:
         
 
         # Create pcl for all of them
-        pcl_dict={}
+        self.pcl_dict={}
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
-            pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth, show_details)
+            self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth, show_details)
 
         # In the future to implement multiprocessing, we need to modify following
 
@@ -485,7 +406,7 @@ class GraphDrawer:
 
                     # if their closest points are touching they are touched for sure
                     # closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, first_id, (mask == int(second_id))*1, second_center, second_id, depth, graphImage, show_labels)
-                    minDistance=getAvrMinDistBtwPoints(pcl_dict[first_id], pcl_dict[second_id], N=10)
+                    minDistance=getAvrMinDistBtwPoints(self.pcl_dict[first_id], self.pcl_dict[second_id], N=10)
 
                     if touch_threshold > minDistance:
                         self.relation_matrix[first_id-1, second_id-1]=1
@@ -521,13 +442,13 @@ class GraphDrawer:
     #     return self.table_relations.relations
 
 
-class SimpleStabileGraph:
+class SimpleStableGraph:
     def __init__(self, num_obj) -> None:
-        # For simple graph
+
         self.num_obj=num_obj
         self.options = {
-            "font_size": 15,
-            "node_size": 2000,
+            "font_size": 14,
+            "node_size": 2100,
             "node_color": "white",
             "edgecolors": "black",
             "linewidths": 2,
@@ -547,9 +468,8 @@ class SimpleStabileGraph:
         self.pos = nx.circular_layout(self.G)
         self.listOfRelationMatrix=[]
 
-    def _stabile(self, relation_matrix):
-        # N=10
-        # C=7
+    def _stable(self, relation_matrix):
+
         
         self.stabileRelationMatrix=np.zeros((self.num_obj, self.num_obj))
         
@@ -581,31 +501,10 @@ class SimpleStabileGraph:
         self.G=nx.empty_graph(self.objNames)
         self.pos = nx.circular_layout(self.G)
 
-        print("list mat: \n", self.listOfRelationMatrix, "\nend")
-        print("mat: \n", self.stabileRelationMatrix)
-
 
     def show(self, relation_matrix):
-        # 
 
-        # self.G.clear()
-        # plt.clf()
-        # is_ok=False
-        # #self.G.add_node(0)
-        # for i in range(self.num_obj):
-        #     for j in range(i, self.num_obj):
-        #         if self.relation_matrix[i,j]==1:
-        #             self.G.add_edge(i+1, j+1)
-        #             is_ok=True
-
-        # if is_ok:
-        #     random_pos = nx.random_layout(self.G, seed=42)
-        #     pos = nx.spring_layout(self.G, pos=random_pos)
-        #     nx.draw_networkx(self.G, pos, **self.options)
-        #     plt.pause(0.00001)
-
-        self._stabile(relation_matrix)
-        # TODO:relation matrix ->stabile relation
+        self._stable(relation_matrix)
 
         self.G.remove_edges_from(list(self.G.edges()))
         plt.clf()
@@ -619,5 +518,5 @@ class SimpleStabileGraph:
                     self.G.add_edge(self.objNames[i], self.objNames[j])
                     
         nx.draw_networkx(self.G, self.pos, **self.options)
-        plt.savefig("fig.png")
-        cv2.imshow("Simple Stabile Graph", cv2.imread("fig.png"))        
+        plt.savefig("simpleStableGraph.png")
+        cv2.imshow("Simple Stable Graph", cv2.imread("simpleStableGraph.png"))        

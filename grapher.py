@@ -296,7 +296,7 @@ class GraphDrawer:
         self.beta = beta
         self.relation_matrix=None
 
-        self.simpleGraph=StabileSimpleGraph(num_obj)
+        self.simpleGraph=SimpleStabileGraph(num_obj)
 
         # self.avr_centers={}
         # self.avr_on = avr_on
@@ -516,7 +516,7 @@ class GraphDrawer:
     #     return self.table_relations.relations
 
 
-class StabileSimpleGraph:
+class SimpleStabileGraph:
     def __init__(self, num_obj) -> None:
         # For simple graph
         self.num_obj=num_obj
@@ -541,15 +541,16 @@ class StabileSimpleGraph:
 
         self.pos = nx.circular_layout(self.G)
         self.listOfRelationMatrix=[]
-        self.stabileRelationMatrix=np.zeros((num_obj, num_obj))
 
     def _stabile(self, relation_matrix):
         N=10
         C=7
         
+        self.stabileRelationMatrix=np.zeros((self.num_obj, self.num_obj))
+        
         # queue with lenght N
         self.listOfRelationMatrix.append(relation_matrix)
-        if len(self.listOfRelationMatrix)>N:
+        if len(self.listOfRelationMatrix) > cfg.SIMPLEGRAPH.QUEUE_LENGTH:
             self.listOfRelationMatrix.pop()
 
         
@@ -558,9 +559,9 @@ class StabileSimpleGraph:
                 temp=0
                 for t in range(N):
                     if self.listOfRelationMatrix[t][i,j]==1:
-                        temp+=1
+                        temp +=1
                     
-                if temp>=C:
+                if temp >= cfg.SIMPLEGRAPH.MIN_VISIBILITY:
                     self.stabileRelationMatrix[i,j]=1
                     self.stabileRelationMatrix[j,i]=1
 

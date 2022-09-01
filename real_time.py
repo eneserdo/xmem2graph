@@ -23,14 +23,14 @@ from grapher import GraphDrawer, TableRelation
 from utils import Timer, convert_from_uvd, Coord, load_config
 
 # Global variables
-label_map={1: "hand",
-           2: "pan",
-           3: "cup",
-           4: "spoon",
-           5: "foam_balls",
-           6: "hand"}
+# label_map={1: "hand",
+#            2: "pan",
+#            3: "cup",
+#            4: "spoon",
+#            5: "foam_balls",
+#            6: "hand"}
 
-ZOOM_COEF=1.5
+ZOOM_COEF=1.2
 
 cfg=load_config("./config.yml")
 
@@ -166,7 +166,7 @@ def main(argv):
     record_frames=False
     run_xmem=False
     show_blended=False
-    graph_show_labels=True
+    graph_show_details=True
     fps=0
     timer=Timer()
 
@@ -214,8 +214,8 @@ def main(argv):
 
                 cv2.namedWindow("graphImage")
                 cv2.setMouseCallback('graphImage', print_coord)
-                cv2.createTrackbar('check_threshold','graphImage',300,750,nothing)
-                cv2.createTrackbar('touch_threshold','graphImage',30,100,nothing)
+                cv2.createTrackbar('check_threshold','graphImage',400,750,nothing)
+                cv2.createTrackbar('touch_threshold','graphImage',12,100,nothing)
                 cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
                 run_xmem=True
 
@@ -255,7 +255,7 @@ def main(argv):
                 table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
                 
                 start_graph=perf_counter()
-                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_labels=graph_show_labels)
+                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_details=graph_show_details)
                 putNames(graphImage, centers)
                 print("graph time:", round(perf_counter()-start_graph, 3))
                 # graphDrawer.getTableRelations()
@@ -316,6 +316,7 @@ def main(argv):
             
             elif key==ord('u'):
                 cfg=load_config("./config.yml")
+                graphDrawer.update_cfg()
             
             elif key==ord('b'):
                 show_blended = not show_blended
@@ -323,7 +324,7 @@ def main(argv):
                     cv2.destroyWindow("blended")
 
             elif key==ord('l'):
-                graph_show_labels = not graph_show_labels
+                graph_show_details = not graph_show_details
 
             elif key==ord('t'):
                 shift_y=0

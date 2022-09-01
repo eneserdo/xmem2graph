@@ -331,11 +331,8 @@ def main(argv):
                 shift_x=0
             
             elif key>=ord("1") and key<=ord("9"):
-                try:
-                    graphDrawer._testProximity(rgb_img, depth_img, key-ord("0"), touch_threshold)
-                except:
-                    print("Error")
-                    pass
+                graphDrawer._testProximity(rgb_img, depth_img, key-ord("0"), touch_threshold)
+
 
         # if os.path.exists("./ritm_interactive_segmentation/initial.png"):
         #     os.remove("./ritm_interactive_segmentation/initial.png")

@@ -324,6 +324,11 @@ class GraphDrawer:
     @staticmethod
     def _getPCL(graphImage, object_mask, depth_img, show_labels):
         allPoints=mask2InnerPoints(object_mask,depth_img) + mask2BoundaryPoints(object_mask,depth_img)
+
+        for i in range(-1, -len(allPoints)-1):
+            if almost_equal(allPoints[i].d,0):
+                allPoints.pop(i)
+
         if show_labels:
             for p in allPoints:
                 cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
@@ -336,10 +341,10 @@ class GraphDrawer:
 
     def _testProximity(self, img, depth, id_, touch_threshold):
         img_test=img.copy()
-
+        print(self.pcl_dict[1])
         for i in range(img_test.shape[0]): 
             for j in range(img_test.shape[1]): 
-                _,_, dist=getMinDistBtwPoints([Coord(int(j), int(i), depth.item((int(i), int(j))))], self.pcl_dict[str(id_)])
+                _,_, dist=getMinDistBtwPoints([Coord(int(j), int(i), depth.item((int(i), int(j))))], self.pcl_dict[id_])
                 
                 if touch_threshold > dist:
                     img_test[i, j]=[70, 20, 250]

@@ -126,7 +126,7 @@ def getMinDistBtwPoints(points1, points2):
     return p1_min, p2_min, minDist
 
 
-def getAvrMinDistBtwPoints(points1, points2, N=6):
+def getAvrMinDistBtwPoints(points1, points2, N):
     
     dist_array=np.ones((len(points1), len(points2)))*np.inf
 
@@ -415,7 +415,7 @@ class GraphDrawer:
 
     @staticmethod
     def _getPCL(graphImage, object_mask, depth_img, show_labels):
-        allPoints=mask2BoundaryPoints(object_mask,depth_img) + mask2InnerPoints(object_mask,depth_img)
+        allPoints=mask2InnerPoints(object_mask,depth_img) + mask2BoundaryPoints(object_mask,depth_img)
         if show_labels:
             for p in allPoints:
                 cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
@@ -481,23 +481,24 @@ class GraphDrawer:
                 elif check_threshold > center2centerDistance:
 
                     # candidate
-                    cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
+                    #cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
 
                     # if their closest points are touching they are touched for sure
                     # closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, first_id, (mask == int(second_id))*1, second_center, second_id, depth, graphImage, show_labels)
-                    minDistance=getAvrMinDistBtwPoints(pcl_dict[first_id], pcl_dict[second_id], N=3)
+                    minDistance=getAvrMinDistBtwPoints(pcl_dict[first_id], pcl_dict[second_id], N=10)
 
                     if touch_threshold > minDistance:
                         self.relation_matrix[first_id-1, second_id-1]=1
                         self.relation_matrix[second_id-1, first_id-1]=1
 
                         cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
+                        cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
 
                         # if closest_p1 is not None:
                             # cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
                     
-                    cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
+                    # cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
 
         # Emphasize object centers
         for _id in obj_ids:
@@ -547,15 +548,15 @@ class SimpleStabileGraph:
         self.listOfRelationMatrix=[]
 
     def _stabile(self, relation_matrix):
-        N=10
-        C=7
+        # N=10
+        # C=7
         
         self.stabileRelationMatrix=np.zeros((self.num_obj, self.num_obj))
         
         # queue with lenght N
         self.listOfRelationMatrix.append(relation_matrix)
         if len(self.listOfRelationMatrix) > cfg.SIMPLEGRAPH.QUEUE_LENGTH:
-            self.listOfRelationMatrix.pop()
+            self.listOfRelationMatrix.pop(0)
 
         
         for i in range(self.num_obj):
@@ -579,6 +580,10 @@ class SimpleStabileGraph:
                 self.objNames.append(str(i))
         self.G=nx.empty_graph(self.objNames)
         self.pos = nx.circular_layout(self.G)
+
+        print("list mat: \n", self.listOfRelationMatrix, "\nend")
+        print("mat: \n", self.stabileRelationMatrix)
+
 
     def show(self, relation_matrix):
         # 
@@ -610,7 +615,7 @@ class SimpleStabileGraph:
 
         for i in range(self.num_obj):
             for j in range(self.num_obj):
-                if relation_matrix[i,j]==1:
+                if self.stabileRelationMatrix[i,j]==1:
                     self.G.add_edge(self.objNames[i], self.objNames[j])
                     
         nx.draw_networkx(self.G, self.pos, **self.options)

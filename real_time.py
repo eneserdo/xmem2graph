@@ -316,6 +316,7 @@ def main(argv):
             
             elif key==ord('u'):
                 cfg=load_config("./config.yml")
+                graphDrawer.update_cfg()
             
             elif key==ord('b'):
                 show_blended = not show_blended

@@ -422,6 +422,10 @@ class GraphDrawer:
         
         return allPoints
 
+    def update_cfg(self):
+        global cfg
+        cfg=load_config("./config.yml")
+        
     def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_details=True):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
         # assert touch_threshold < check_threshold
@@ -534,7 +538,7 @@ class SimpleStabileGraph:
             try:
                 self.objNames.append(cfg.LABEL_MAP[str(i)])
             except:
-                self.objNames.append("?")
+                self.objNames.append(str(i))
 
 
         self.G=nx.empty_graph(self.objNames)
@@ -564,10 +568,6 @@ class SimpleStabileGraph:
                 if temp >= cfg.SIMPLEGRAPH.MIN_VISIBILITY:
                     self.stabileRelationMatrix[i,j]=1
                     self.stabileRelationMatrix[j,i]=1
-
-    def update_cfg(self):
-        global cfg
-        cfg=load_config("./config.yml")
 
     def show(self, relation_matrix):
         # 

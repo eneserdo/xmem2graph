@@ -424,7 +424,7 @@ class GraphDrawer:
 
     def update_cfg(self):
         cfg=load_config("./config.yml")
-        self.simpleGraph._update_cfg()
+        self.simpleGraph._update_names()
         
     def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_details=True):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
@@ -525,12 +525,12 @@ class SimpleStabileGraph:
         # For simple graph
         self.num_obj=num_obj
         self.options = {
-            "font_size": 36,
-            "node_size": 3000,
+            "font_size": 15,
+            "node_size": 2000,
             "node_color": "white",
             "edgecolors": "black",
-            "linewidths": 3,
-            "width": 3,
+            "linewidths": 2,
+            "width": 2,
         }
         
         self.objNames=[]
@@ -569,7 +569,7 @@ class SimpleStabileGraph:
                     self.stabileRelationMatrix[i,j]=1
                     self.stabileRelationMatrix[j,i]=1
 
-    def _update_cfg(self):
+    def _update_names(self):
         cfg=load_config("./config.yml")
         self.objNames=[]
         for i in range(1,1+self.num_obj):

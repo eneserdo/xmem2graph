@@ -557,7 +557,7 @@ class SimpleStabileGraph:
         for i in range(self.num_obj):
             for j in range(i, self.num_obj):
                 temp=0
-                for t in range(N):
+                for t in range(len(self.listOfRelationMatrix)):
                     if self.listOfRelationMatrix[t][i,j]==1:
                         temp +=1
                     

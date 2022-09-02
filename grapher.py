@@ -337,12 +337,17 @@ class GraphDrawer:
         cfg=load_config("./config.yml")
         self.simpleGraph._update_names()
 
-    def _testProximity(self, img, depth, id_, touch_threshold):
+    def _testProximity(self, img, depth, mask, touch_threshold):
+
+        assert np.unique(mask).shape[0]==2 # Only one object must be selected
+
+        pcl=self._getPCL(None, mask, depth, False)
+
         img_test=img.copy()
-        print(self.pcl_dict[1])
+        print(pcl)
         for i in range(img_test.shape[0]): 
             for j in range(img_test.shape[1]): 
-                _,_, dist=getMinDistBtwPoints([Coord(int(j), int(i), depth.item((int(i), int(j))))], self.pcl_dict[id_])
+                _,_, dist=getMinDistBtwPoints([Coord(int(j), int(i), depth.item((int(i), int(j))))], pcl)
                 
                 if touch_threshold > dist:
                     img_test[i, j]=[70, 20, 250]

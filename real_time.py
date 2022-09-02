@@ -256,11 +256,15 @@ def main(argv):
                 
                 start_graph=perf_counter()
                 graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_details=graph_show_details)
+                
+                graphDrawer._testProximity(rgb_img, depth_img, prediction, touch_threshold)
+
                 putNames(graphImage, centers)
                 print("graph time:", round(perf_counter()-start_graph, 3))
                 # graphDrawer.getTableRelations()
                 
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
+
                 visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
                 graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
 
@@ -270,14 +274,17 @@ def main(argv):
                 
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
+
             else:
                 if cfg.CAMERA_NAME=="ZED":
                     depth_img_=((2**16-1)*depth_img/(np.max(depth_img)-np.min(depth_img))).astype(np.uint16)
                 elif cfg.CAMERA_NAME=="KINECT":
                     depth_img_=depth_img*20
 
-                cv2.imshow('image2', depth_img_)
-                cv2.imshow('image1', rgb_img)
+                depth_img_ = cv2.resize(depth_img_, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+                rgb_img = cv2.resize(rgb_img, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+                cv2.imshow('depth_img', depth_img_)
+                cv2.imshow('rgb_img', rgb_img)
             
             fps=timer.end_and_print(no_print=True)
 
@@ -329,9 +336,6 @@ def main(argv):
             elif key==ord('t'):
                 shift_y=0
                 shift_x=0
-            
-            elif key>=ord("1") and key<=ord("9"):
-                graphDrawer._testProximity(rgb_img, depth_img, key-ord("0"), touch_threshold)
 
 
         # if os.path.exists("./ritm_interactive_segmentation/initial.png"):

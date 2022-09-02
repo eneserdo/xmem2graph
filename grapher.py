@@ -325,15 +325,13 @@ class GraphDrawer:
     def _getPCL(graphImage, object_mask, depth_img, show_labels):
         allPoints=mask2InnerPoints(object_mask,depth_img) + mask2BoundaryPoints(object_mask,depth_img)
 
-        for i in range(-1, -len(allPoints)-1):
-            if almost_equal(allPoints[i].d,0):
-                allPoints.pop(i)
+        filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
 
         if show_labels:
-            for p in allPoints:
+            for p in filtered_allPoints:
                 cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
         
-        return allPoints
+        return filtered_allPoints
 
     def update_cfg(self):
         cfg=load_config("./config.yml")

@@ -345,9 +345,9 @@ class GraphDrawer:
 
         img_test=img.copy()
         print(pcl)
-        for i in range(img_test.shape[0]): 
-            for j in range(img_test.shape[1]): 
-                _,_, dist=getMinDistBtwPoints([Coord(int(j), int(i), depth.item((int(i), int(j))))], pcl)
+        for i in range(50, img_test.shape[0]-50, 3): 
+            for j in range(50, img_test.shape[1]-50, 3): 
+                _,_, dist=getMinDistBtwPoints([Coord(int(j), int(i), depth.item((i, j)) )], pcl)
                 
                 if touch_threshold > dist:
                     img_test[i, j]=[70, 20, 250]

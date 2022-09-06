@@ -98,7 +98,8 @@ def mask2InnerPoints(obj_mask: np.ndarray, depth: np.ndarray):
     points_v, points_u = np.where(obj_mask*5 > 1)
     points = np.concatenate([points_v.reshape(-1, 1), points_u.reshape(-1, 1)], axis=1)
 
-    subset = np.random.choice(len(points), max(int(len(points)*cfg.GRAPHER.SUBSET_INSIDE), cfg.GRAPHER.MIN_INSIDE))
+    # subset = np.random.choice(len(points), max(int(len(points)*cfg.GRAPHER.SUBSET_INSIDE), cfg.GRAPHER.MIN_INSIDE))
+    subset = np.random.choice(len(points), cfg.GRAPHER.MIN_INSIDE)
     points_subset = points[subset]
     points_subset = arrayAndDepthToCoord(points_subset, depth)
     return points_subset

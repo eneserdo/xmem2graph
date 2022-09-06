@@ -16,6 +16,4 @@ Yalnızca segmented pointcoud u yayınla.
 
 graph stabilization
 
-multithreading for pcl distance calculations!
-
 """

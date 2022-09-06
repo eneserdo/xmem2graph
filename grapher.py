@@ -4,6 +4,8 @@ import networkx as nx
 from math import sqrt
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
+# from multiprocessing import shared_memory, Lock, cpu_count, Pool
+
 from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, almost_equal, load_config
 
 
@@ -22,84 +24,6 @@ def colorMap(name):
     # except:
     #     return (255*to_rgb(CSS4_COLORS[colorName[name]])[::-1]).astype(np.uint8)
     raise NotImplementedError
-
-class TableRelation:
-    def __init__(self, img, depth, num_obj):
-
-        self._selectPoints(img, depth) # sets self.table_points
-
-        assert self.table_points.shape[0]>=3
-
-        # zeros = np.zeros((self.table_points.shape[0])).reshape(-1,1)
-        
-        # Since "A@[x, y, z, 1] = 0" has a trivial solution (p=0), instead I used "A@[x, y, 1] = z" 
-        ones = np.ones((self.table_points.shape[0])).reshape(-1,1)
-        A = np.concatenate([self.table_points[:,0:2], ones], axis=1) 
-        z=self.table_points[:, 2]
-
-        # z= a*x + b*y + c
-        self.p, _, _, _ = lstsq(A, z)
-        print("p: ", self.p)
-        # self._distToPoint = lambda x, y, z: (x*p[0]+ y*p[1]+ z*p[2]+p[3])/(sqrt(p[0]**2+p[1]**2+ p[2]**2))
-        self._distToPoint = lambda _x, _y, _z: abs(_x*self.p[0] + _y*self.p[1] + self.p[2] -1*_z)/(sqrt(self.p[0]**2 + self.p[1]**2 + 1))
-        
-        # self.relations=np.zeros((num_obj))
-        self.min_dists=np.ones((num_obj))*np.inf
-        self.num_obj=num_obj
-
-    # def setRelationValue(self, obj_id, val):
-    #     self.relations[obj_id]=val
-
-    def setMinDistFromTable(self, points, obj_id):
-        minDist=np.inf
-        for p in points:
-            dist=self.plane(p.x, p.y, p.z)
-            if dist<minDist:
-                minDist=self.plane(p)
-        
-        self.min_dists[obj_id]=minDist
-
-
-    def _selectPoints(self, img_point_select, depth):
-        ### inner func ###
-        def click_event(event, x, y, flags, params):
-            if event == cv2.EVENT_LBUTTONDOWN:
-                d_=depth.item((int(y), int(x)))
-                if not almost_equal(d_, 0):
-                    cv2.circle(img_point_select, (x, y), 2, (0, 255, 51), -1)
-                    cv2.imshow("Choose points on table", img_point_select)
-                    x1, y1, z1=convert_from_uvd(int(x), int(y), d_)
-                    print(f"({round(x1,1)}, {round(y1,1)}, {round(z1,1)}) is selected")
-                    self.table_points=np.append(self.table_points, [x1, y1, z1])
-                else:
-                    cv2.circle(img_point_select, (x, y), 2, (0, 51, 255), -1)
-                    cv2.imshow("Choose points on table", img_point_select)
-
-        ### inner func ###
-
-        self.table_points=np.array([])
-        # cv2.destroyAllWindows()
-        cv2.imshow("Choose points on table", img_point_select)
-
-        cv2.setMouseCallback('Choose points on table', click_event)
-
-        cv2.waitKey(0)
-        self.table_points=self.table_points.reshape(-1, 3)
-        cv2.destroyWindow("Choose points on table")
-    
-    def _test(self, table_thrshld, img, depth):
-        img_test=img.copy()
-        
-        for i in range(img_test.shape[0]): 
-            for j in range(img_test.shape[1]): 
-                x1, y1, z1=convert_from_uvd(int(j), int(i), depth.item((int(i), int(j))))
-                
-                if table_thrshld > self._distToPoint(x1, y1, z1):
-                    img_test[i, j]=[70, 20, 250]
-
-        img_test = cv2.resize(img_test, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
-        cv2.imshow("Table: img_test", img_test)
-
 
 
 def getMinDistBtwPoints(points1, points2):
@@ -180,8 +104,82 @@ def mask2InnerPoints(obj_mask: np.ndarray, depth: np.ndarray):
     return points_subset
 
 
-# def disPointToPCL(point, listOfPoints):
-#     return minDist
+class TableRelation:
+    """
+    Express the table as plane equation, and use it to calculate the distance to table
+    """
+    def __init__(self, img, depth, num_obj):
+
+        self._selectPoints(img, depth) # sets self.table_points
+
+        assert self.table_points.shape[0]>=3
+
+        # zeros = np.zeros((self.table_points.shape[0])).reshape(-1,1)
+        
+        # Since "A@[x, y, z, 1] = 0" has a trivial solution (p=0), instead I used "A@[x, y, 1] = z" 
+        ones = np.ones((self.table_points.shape[0])).reshape(-1,1)
+        A = np.concatenate([self.table_points[:,0:2], ones], axis=1) 
+        z=self.table_points[:, 2]
+
+        # z= a*x + b*y + c
+        self.p, _, _, _ = lstsq(A, z)
+        print("p: ", self.p)
+        # self._distToPoint = lambda x, y, z: (x*p[0]+ y*p[1]+ z*p[2]+p[3])/(sqrt(p[0]**2+p[1]**2+ p[2]**2))
+        self._distToPoint = lambda _x, _y, _z: abs(_x*self.p[0] + _y*self.p[1] + self.p[2] -1*_z)/(sqrt(self.p[0]**2 + self.p[1]**2 + 1))
+        
+        # self.relations=np.zeros((num_obj))
+        self.min_dists=np.ones((num_obj))*np.inf
+        self.num_obj=num_obj
+
+    def getMinDistFromTable(self, points):
+        minDist=np.inf
+        for p in points:
+            dist=self._distToPoint(p.x, p.y, p.z)
+            if dist<minDist:
+                minDist=dist
+        
+        return minDist
+
+
+    def _selectPoints(self, img_point_select, depth):
+        ### inner func ###
+        def click_event(event, x, y, flags, params):
+            if event == cv2.EVENT_LBUTTONDOWN:
+                d_=depth.item((int(y), int(x)))
+                if not almost_equal(d_, 0):
+                    cv2.circle(img_point_select, (x, y), 2, (0, 255, 51), -1)
+                    cv2.imshow("Choose points on table", img_point_select)
+                    x1, y1, z1=convert_from_uvd(int(x), int(y), d_)
+                    print(f"({round(x1,1)}, {round(y1,1)}, {round(z1,1)}) is selected")
+                    self.table_points=np.append(self.table_points, [x1, y1, z1])
+                else:
+                    cv2.circle(img_point_select, (x, y), 2, (0, 51, 255), -1)
+                    cv2.imshow("Choose points on table", img_point_select)
+
+        ### inner func ###
+
+        self.table_points=np.array([])
+        # cv2.destroyAllWindows()
+        cv2.imshow("Choose points on table", img_point_select)
+
+        cv2.setMouseCallback('Choose points on table', click_event)
+
+        cv2.waitKey(0)
+        self.table_points=self.table_points.reshape(-1, 3)
+        cv2.destroyWindow("Choose points on table")
+    
+    def _test(self, table_thrshld, img, depth):
+        img_test=img.copy()
+        
+        for i in range(img_test.shape[0]): 
+            for j in range(img_test.shape[1]): 
+                x1, y1, z1=convert_from_uvd(int(j), int(i), depth.item((int(i), int(j))))
+                
+                if table_thrshld > self._distToPoint(x1, y1, z1):
+                    img_test[i, j]=[70, 20, 250]
+
+        img_test = cv2.resize(img_test, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+        cv2.imshow("Table: img_test", img_test)
 
 
 class GraphDrawer:
@@ -189,7 +187,7 @@ class GraphDrawer:
         Transforms semantic segmented image masks to graphs on image
     """
 
-    def __init__(self, num_obj, queue_length=-1, beta=0.95, avr_on=False):
+    def __init__(self, num_obj, queue_length=-1, beta=0.95, avr_on=False, tr=None):
 
         # if queue_length==1 and beta==0:
         # raise ValueError("For queue length 1, moving avr is used, so specify the beta")
@@ -205,7 +203,10 @@ class GraphDrawer:
         self.relation_matrix=None
 
         self.simpleGraph=SimpleStableGraph(num_obj)
-
+        
+        if tr is None:
+            raise ValueError
+        self.tableRelation=tr
         # self.avr_centers={}
         # self.avr_on = avr_on
         # for i in range(1,1+num_obj):
@@ -375,7 +376,8 @@ class GraphDrawer:
             graphImage = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
 
 
-        self.relation_matrix=np.zeros((self.num_obj, self.num_obj))
+        # Number_of_object + table
+        self.relation_matrix=np.zeros((self.num_obj+1, self.num_obj+1))
         
 
         # Create pcl for all of them
@@ -383,6 +385,14 @@ class GraphDrawer:
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
             self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth, show_details)
+
+
+            # Also calculate the distance to table
+            tempDist=self.tableRelation.getMinDistFromTable(self.pcl_dict[id_])
+            if table_threshold>tempDist:
+                self.relation_matrix[id_-1, -1]=1
+                self.relation_matrix[-1, id_-1]=1
+
 
         # In the future to implement multiprocessing, we need to modify following
 

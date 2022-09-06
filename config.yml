@@ -1,14 +1,13 @@
-# CAMERA_NAME: "ZED" # or "KINECT"
 CAMERA_NAME: ZED # or "KINECT"  
 
 ZED:
-  f: 334.14288330078125
-  cx: 301.9004821777344
-  cy: 179.2681884765625
+  f: 333.91241455078125
+  cx: 301.9013671875
+  cy: 179.2670440673828
   SCALE: 1000
   DEPTH_TOPIC: "/zed/zed_node/depth/depth_registered"
   RGB_TOPIC: "/zed/zed_node/rgb/image_rect_color"
-
+# [333.91241455078125, 0.0, 301.9013671875, 0.0, 333.91241455078125, 179.2670440673828, 0.0, 0.0, 1.0]
 KINECT:
   f: 525.0
   cx: 319.5
@@ -28,17 +27,17 @@ KINECT:
 
 LABEL_MAP:
   "1": "table"
-  "2": "pan"
-  "3": "hand"
-  "4": "balls"
+  "2": "balls"
+  "3": "pan"
+  "4": "hand"
   "5": "spoon"
   "6": "cup"
 
 GRAPHER:
   EVERY_NTH_ELEMENT: 10
   SUBSAMPLING_DEGREE: 90
-  MIN_INSIDE: 10
-  SUBSET_INSIDE: 0.001
+  MIN_INSIDE: 15
+  SUBSET_INSIDE: 0.0015
 
 
 SIMPLEGRAPH:

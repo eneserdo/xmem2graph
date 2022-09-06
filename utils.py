@@ -3,7 +3,7 @@ import numpy as np
 from math import sqrt
 import yaml
 from easydict import EasyDict
-
+import argparse
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -60,14 +60,21 @@ def convert_from_uvd(u, v, d):
     |
     y(v)  
     """
-    d *= scale
+    # FALSE!!
+    # d *= scale
+    # x_over_z = (u - cx) / f
+    # y_over_z = (v - cy) / f
+    # z = d / np.sqrt(1. + x_over_z**2 + y_over_z**2)
+    # x = x_over_z * z
+    # y = y_over_z * z
 
-    x_over_z = (u - cx) / f
-    y_over_z = (v - cy) / f
-    z = d / np.sqrt(1. + x_over_z**2 + y_over_z**2)
-    x = x_over_z * z
-    y = y_over_z * z
+    z =d*scale
+    x = (u-cx)*z/f
+    y = (v-cy)*z/f
+
     return x, y, z
+
+
 
 
 class Coord:
@@ -150,3 +157,16 @@ def almost_equal(a, b, eps=1e-5):
         return True
     else:
         False
+
+
+def argparser():
+    pass
+    # mask_name
+    # camera name
+
+    ap = argparse.ArgumentParser(help="These are dynamic parameters, for others, check 'config.yml' ")
+    ap.add_argument("-m", "--mask_name", help="mask_name, if not exits it is ok")
+    ap.add_argument("-sx", "--shift_x", type=int ,default=0, help="shift in x axis to align depth with rgb")
+    ap.add_argument("-sy", "--shift_y", type=int ,default=0, help="shift in y axis to align depth with rgb")
+
+    return ap

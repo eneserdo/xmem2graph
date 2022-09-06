@@ -170,16 +170,25 @@ def main(argv):
     fps=0
     timer=Timer()
 
-    
+    import glob
 
     with torch.cuda.amp.autocast(enabled=True):
 
-        for temp_rgb, temp_depth in rosrunner.frameGenerator():
-            if cfg.CAMERA_NAME=="ZED":
-                temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
-                temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
-                temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
-                temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+        # for temp_rgb, temp_depth in rosrunner.frameGenerator():
+            # if cfg.CAMERA_NAME=="ZED":
+                # temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
+                # temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
+                # temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
+                # temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+        
+        rgb_files=sorted(glob.glob("sampleVids/zed_conf15/rgb/*.npy"))
+        depth_files=sorted(glob.glob("sampleVids/zed_conf15/depth/*.npy"))
+        for rgb_path, depth_path in zip(rgb_files, depth_files):
+            # temp_rgb=cv2.imread(rgb_path, -1)
+            # temp_depth=cv2.imread(depth_path, -1)
+
+            temp_rgb=np.load(rgb_path)
+            temp_depth=np.load(depth_path)
 
             timer.start()
 
@@ -219,8 +228,8 @@ def main(argv):
                 cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
                 run_xmem=True
 
-                graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95)
-                #tableRelation=TableRelation(img1, img2, num_objects)
+                tableRelation=TableRelation(rgb_img, depth_img, num_objects)
+                graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95, tR=tableRelation)
             
             if show_blended:
                 blended=getBlended(rgb_img, depth_img)
@@ -257,21 +266,24 @@ def main(argv):
                 start_graph=perf_counter()
                 graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_details=graph_show_details)
                 
-                graphDrawer._testProximity(rgb_img, depth_img, prediction, touch_threshold)
+                # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, touch_threshold)
 
                 putNames(graphImage, centers)
                 print("graph time:", round(perf_counter()-start_graph, 3))
                 # graphDrawer.getTableRelations()
                 
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
+                # masked_rgb = cv2.bitwise_and(rgb_img, rgb_img, mask=prediction)
+                # masked_depth = cv2.bitwise_and(depth_img, depth_img, mask=prediction)
 
                 visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
                 graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
 
                 visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 
-                #tableRelation._test(table_threshold, img1, img2)
+                tableRelation._test(table_threshold, rgb_img, depth_img)
                 
+
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
 
@@ -295,7 +307,7 @@ def main(argv):
             
             
             key = cv2.waitKey(1) & 0xFF
-            
+            #
             if key  == ord('q'): 
                 break 
 
@@ -318,6 +330,15 @@ def main(argv):
             elif key==ord('r'):
                 record_frames = not record_frames
 
+            elif key==ord('p'):
+                cv2.imwrite("color_frame.png", rgb_img)
+                depth_img_=((2**16-1)*depth_img/(np.max(depth_img)-np.min(depth_img))).astype(np.uint16)
+                cv2.imwrite("depth_frame.png", depth_img_)
+                subprocess.run("/home/enerd/Desktop/playground/opencv/cv_test color_frame.png depth_frame.png && pcl_viewer pcl_file.pcd", shell=True)
+                os.remove("./color_frame.png")
+                os.remove("./depth_frame.png")
+                os.remove("./pcl_file.pcd")
+
             elif key==ord('m'):
                 set_mask = True
             
@@ -336,6 +357,10 @@ def main(argv):
             elif key==ord('t'):
                 shift_y=0
                 shift_x=0
+            
+            elif key==32: # space keycode
+                cv2.waitKey(0)
+                print("press any key to continue")
 
 
         # if os.path.exists("./ritm_interactive_segmentation/initial.png"):

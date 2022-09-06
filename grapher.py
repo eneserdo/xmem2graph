@@ -207,7 +207,7 @@ class GraphDrawer:
         self.beta = beta
         self.relation_matrix=None
 
-        self.simpleGraph=SimpleStableGraph(num_obj)
+        self.simpleGraph=SimpleStableGraph(num_obj+1)
         
         if tr is None:
             raise ValueError
@@ -385,12 +385,11 @@ class GraphDrawer:
         self.relation_matrix=np.zeros((self.num_obj+1, self.num_obj+1))
         
 
-        # Create pcl for all of them
+        # Create pcl for all of them, and form table-object relations
         self.pcl_dict={}
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
             self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth, show_details)
-
 
             # Also calculate the distance to table
             tempDist=self.tableRelation.getMinDistFromTable(self.pcl_dict[id_])
@@ -451,18 +450,10 @@ class GraphDrawer:
             if show_details:
                 cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
-        # self._drawSimpleGraph()
+        print(self.relation_matrix)
         self.simpleGraph.show(self.relation_matrix)
 
         return graphImage
-
-    # def setTablePlane(self, img, depth):
-    #     # Call once
-    #     self.table_relations=TableRelation(img, depth)
-    
-    # def getTableRelations(self):
-    #     # Call to show on table relation
-    #     return self.table_relations.relations
 
 
 class SimpleStableGraph:

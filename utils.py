@@ -160,13 +160,14 @@ def almost_equal(a, b, eps=1e-5):
 
 
 def argparser():
-    pass
-    # mask_name
     # camera name
+    # help="These are dynamic parameters, for others, check 'config.yml' "
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-mr", "--mask_ready", action="store_true" , help="to load already existing mask")
+    ap.add_argument("-tpr", "--table_points_ready", action="store_true", help="to load already existing points")
 
-    ap = argparse.ArgumentParser(help="These are dynamic parameters, for others, check 'config.yml' ")
-    ap.add_argument("-m", "--mask_name", help="mask_name, if not exits it is ok")
+    ap.add_argument("-mn", "--mask_name", default="mask.png", help="to load already existing mask")
     ap.add_argument("-sx", "--shift_x", type=int ,default=0, help="shift in x axis to align depth with rgb")
     ap.add_argument("-sy", "--shift_y", type=int ,default=0, help="shift in y axis to align depth with rgb")
 
-    return ap
+    return ap.parse_args()

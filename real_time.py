@@ -20,7 +20,7 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord, load_config
+from utils import Timer, convert_from_uvd, Coord, load_config, argparser
 
 # Global variables
 # label_map={1: "hand",
@@ -118,7 +118,7 @@ def nothing(x):
     pass
 
 
-def main(argv):
+def main(args):
     global depth_img, tableRelation, cfg
     torch.set_grad_enabled(False)
 
@@ -143,26 +143,13 @@ def main(argv):
 
     torch.cuda.empty_cache()
 
-    set_mask=False
-    mask_ready=False
-    try:
-        if argv[1]=="mask_ready":
-            set_mask=True
-            mask_ready=True 
-    except IndexError:
-        pass
-
-    try:
-        shift_x=int(argv[2]) 
-        shift_y=int(argv[3])
-    except IndexError:
-        shift_x=0
-        shift_y=0
-        pass
+    mask_ready = args.mask_ready
+    set_mask = args.mask_ready
+    
+    shift_x = args.shift_x
+    shift_y = args.shift_y
     
     rosrunner = RosRun()
-    # shift_x=0
-    # shift_y=0
     record_frames=False
     run_xmem=False
     show_blended=False
@@ -208,7 +195,7 @@ def main(argv):
                     cv2.imwrite("./ritm_interactive_segmentation/initial.png", rgb_img)
                     subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
 
-                num_objects, mask = adapt_mask('./ritm_interactive_segmentation/mask.png')
+                num_objects, mask = adapt_mask('./ritm_interactive_segmentation/' + args.mask_name)
                 processor = InferenceCore(network, config=config)
                 processor.set_all_labels(range(1, num_objects+1)) # consecutive labels
                 
@@ -223,13 +210,13 @@ def main(argv):
 
                 cv2.namedWindow("graphImage")
                 cv2.setMouseCallback('graphImage', print_coord)
-                cv2.createTrackbar('check_threshold','graphImage',400,750,nothing)
+                cv2.createTrackbar('check_threshold','graphImage',500,750,nothing)
                 cv2.createTrackbar('touch_threshold','graphImage',12,100,nothing)
                 cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
                 run_xmem=True
 
-                tableRelation=TableRelation(rgb_img, depth_img, num_objects)
-                graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95, tR=tableRelation)
+                tableRelation=TableRelation(rgb_img, depth_img, num_objects, use_existing=args.table_points_ready)
+                graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95, tr=tableRelation)
             
             if show_blended:
                 blended=getBlended(rgb_img, depth_img)
@@ -281,7 +268,7 @@ def main(argv):
 
                 visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 
-                tableRelation._test(table_threshold, rgb_img, depth_img)
+                # tableRelation._test(table_threshold, rgb_img, depth_img)
                 
 
                 cv2.imshow("graphImage", graphImage)
@@ -376,4 +363,5 @@ def main(argv):
 if __name__ == '__main__':
     depth_img=None
     tableRelation=None
-    main(sys.argv)
+    args=argparser()
+    main(args)

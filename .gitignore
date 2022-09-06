@@ -10,3 +10,4 @@ deneme*.py
 sampleVids/
 *.cam
 *.png
+*.npy

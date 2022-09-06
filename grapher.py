@@ -108,9 +108,13 @@ class TableRelation:
     """
     Express the table as plane equation, and use it to calculate the distance to table
     """
-    def __init__(self, img, depth, num_obj):
+    def __init__(self, img, depth, num_obj, use_existing):
 
-        self._selectPoints(img, depth) # sets self.table_points
+        if use_existing:
+            self.table_points=np.load("table_points.npy")
+            print("Found table_points.npy")
+        else:
+            self._selectPoints(img, depth) # sets self.table_points
 
         assert self.table_points.shape[0]>=3
 
@@ -166,6 +170,7 @@ class TableRelation:
 
         cv2.waitKey(0)
         self.table_points=self.table_points.reshape(-1, 3)
+        np.save("table_points.npy", self.table_points)
         cv2.destroyWindow("Choose points on table")
     
     def _test(self, table_thrshld, img, depth):

@@ -26,11 +26,11 @@ KINECT:
 
 
 LABEL_MAP:
-  "1": "table"
-  "2": "balls"
-  "3": "pan"
-  "4": "hand"
-  "5": "spoon"
+  "1": "hand"
+  "2": "pan"
+  "3": "spoon"
+  "4": "balls"
+  "5": "table"
   "6": "cup"
 
 GRAPHER:
@@ -41,5 +41,5 @@ GRAPHER:
 
 
 SIMPLEGRAPH:
-  QUEUE_LENGTH: 10
-  MIN_VISIBILITY: 7
+  QUEUE_LENGTH: 9
+  MIN_VISIBILITY: 6

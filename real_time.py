@@ -38,9 +38,9 @@ cfg=load_config("./config.yml")
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
         try:
-            cv2.putText(graphImg, cfg.LABEL_MAP[str(id)], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
+            cv2.putText(graphImg, cfg.LABEL_MAP[str(id)], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)    
         except:
-            cv2.putText(graphImg, "?", (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,200,200), 1)    
+            cv2.putText(graphImg, "?", (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)    
 
 
 prev_coord=None
@@ -144,12 +144,12 @@ def main(args):
     torch.cuda.empty_cache()
 
     mask_ready = args.mask_ready
-    set_mask = args.mask_ready
+    set_mask = args.mask_ready or args.set_mask
     
     shift_x = args.shift_x
     shift_y = args.shift_y
     
-    rosrunner = RosRun()
+    # rosrunner = RosRun()
     record_frames=False
     run_xmem=False
     show_blended=False
@@ -168,8 +168,8 @@ def main(args):
                 # temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
                 # temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
         
-        rgb_files=sorted(glob.glob("sampleVids/zed_conf15/rgb/*.npy"))
-        depth_files=sorted(glob.glob("sampleVids/zed_conf15/depth/*.npy"))
+        rgb_files=sorted(glob.glob("sampleVids/zed_balls2/rgb/*.npy"))
+        depth_files=sorted(glob.glob("sampleVids/zed_balls2/depth/*.npy"))
         for rgb_path, depth_path in zip(rgb_files, depth_files):
             # temp_rgb=cv2.imread(rgb_path, -1)
             # temp_depth=cv2.imread(depth_path, -1)
@@ -211,8 +211,8 @@ def main(args):
                 cv2.namedWindow("graphImage")
                 cv2.setMouseCallback('graphImage', print_coord)
                 cv2.createTrackbar('check_threshold','graphImage',500,750,nothing)
-                cv2.createTrackbar('touch_threshold','graphImage',12,100,nothing)
-                cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
+                cv2.createTrackbar('touch_threshold','graphImage',15,100,nothing)
+                cv2.createTrackbar('table_threshold','graphImage',20,100,nothing)
                 run_xmem=True
 
                 tableRelation=TableRelation(rgb_img, depth_img, num_objects, use_existing=args.table_points_ready)
@@ -222,7 +222,7 @@ def main(args):
                 blended=getBlended(rgb_img, depth_img)
                 blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
         
-            if record_frames:
+            # if record_frames:
 
                 # np.save("/home/enerd/catkin_ws/rgb_frame_kinect.npy", img1)
                 # cv2.imwrite("/home/enerd/catkin_ws/rgb_frame_kinect.png", img1)
@@ -232,7 +232,7 @@ def main(args):
                 # cv2.imwrite("/home/enerd/catkin_ws/prediction_frame_kinect.png", prediction)
                 # print("saved")
                 # record_frames=False
-                raise NotImplementedError
+                # raise NotImplementedError
                 # i=i+1
                 # print("Recording: True")
                 # cv2.imwrite(os.path.join(color_dir, f"color_{i:0>6}.png"), img1)
@@ -260,16 +260,21 @@ def main(args):
                 # graphDrawer.getTableRelations()
                 
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
-                # masked_rgb = cv2.bitwise_and(rgb_img, rgb_img, mask=prediction)
-                # masked_depth = cv2.bitwise_and(depth_img, depth_img, mask=prediction)
 
-                visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
-                graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
 
                 visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 
                 # tableRelation._test(table_threshold, rgb_img, depth_img)
-                
+                # _, prediction_mask = cv2.threshold(prediction*2, 1, 255, cv2.THRESH_BINARY)
+                # masked_rgb = cv2.bitwise_and(graphImage, graphImage, mask=prediction_mask)
+                # masked_depth = cv2.bitwise_and(depth_img, depth_img, mask=prediction_mask)
+                # cv2.imshow("masked_rgb", masked_rgb)
+
+                visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
+                graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
+
+                if record_frames:
+                    pass
 
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
@@ -318,7 +323,7 @@ def main(args):
                 record_frames = not record_frames
 
             elif key==ord('p'):
-                cv2.imwrite("color_frame.png", rgb_img)
+                cv2.imwrite("color_frame.png", graphImage+15)
                 depth_img_=((2**16-1)*depth_img/(np.max(depth_img)-np.min(depth_img))).astype(np.uint16)
                 cv2.imwrite("depth_frame.png", depth_img_)
                 subprocess.run("/home/enerd/Desktop/playground/opencv/cv_test color_frame.png depth_frame.png && pcl_viewer pcl_file.pcd", shell=True)
@@ -328,6 +333,7 @@ def main(args):
 
             elif key==ord('m'):
                 set_mask = True
+                mask_ready = False
             
             elif key==ord('u'):
                 cfg=load_config("./config.yml")
@@ -364,4 +370,6 @@ if __name__ == '__main__':
     depth_img=None
     tableRelation=None
     args=argparser()
+
+    assert not ((args.set_mask is True) and (args.mask_ready is True))
     main(args)

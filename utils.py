@@ -164,6 +164,7 @@ def argparser():
     # help="These are dynamic parameters, for others, check 'config.yml' "
     ap = argparse.ArgumentParser()
     ap.add_argument("-mr", "--mask_ready", action="store_true" , help="to load already existing mask")
+    ap.add_argument("-sm", "--set_mask", action="store_true" , help="to initialize RITM directly")
     ap.add_argument("-tpr", "--table_points_ready", action="store_true", help="to load already existing points")
 
     ap.add_argument("-mn", "--mask_name", default="mask.png", help="to load already existing mask")

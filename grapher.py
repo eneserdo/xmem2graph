@@ -70,7 +70,7 @@ def getAvrMinDistBtwPoints(points1, points2, N):
     return np.mean(np.sort(dist_array.flatten())[:N])
 
 
-def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray):
+def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray, addCenterToBoundary=False):
     """
         Calculates the boundary points of the given mask (for single object), 
         then only choose every $(every_nth_element) th element
@@ -86,10 +86,24 @@ def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray):
     boundaryPoints = boundaryPoints.reshape(-1, 2)
 
     bP_as_coord = []
-    for bP in boundaryPoints:
-        # bP[0]=v, bP[1]=u
-        # if not almost_equal(depth.item((bP[0], bP[1])), 0):
-        bP_as_coord.append(Coord(bP.item(1), bP.item(0), depth.item((bP[0], bP[1]))))
+    
+    if not addCenterToBoundary:
+        for bP in boundaryPoints:
+            # bP[0]=v, bP[1]=u
+            # if not almost_equal(depth.item((bP[0], bP[1])), 0):
+            bP_as_coord.append(Coord(bP.item(1), bP.item(0), depth.item((bP[0], bP[1]))))
+    else:
+        M = cv2.moments(thresh)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        center=np.array([cY, cX])
+
+        ratios=[0.4, 0.75, 0.98]
+
+        for bP in boundaryPoints:
+            for r in ratios:
+                tempP=(bP*r+(1-r)*center).astype(np.uint32)
+                bP_as_coord.append(Coord(tempP.item(1), tempP.item(0), depth.item((tempP[0], tempP[1]))))
 
     return bP_as_coord
 
@@ -330,7 +344,7 @@ class GraphDrawer:
 
     @staticmethod
     def _getPCL(graphImage, object_mask, depth_img, show_labels):
-        allPoints=mask2InnerPoints(object_mask,depth_img) + mask2BoundaryPoints(object_mask,depth_img)
+        allPoints=mask2BoundaryPoints(object_mask,depth_img, addCenterToBoundary=True) #+ mask2InnerPoints(object_mask,depth_img)
 
         filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
 
@@ -419,7 +433,7 @@ class GraphDrawer:
                     self.relation_matrix[second_id-1, first_id-1]=1
 
                     cv2.line(graphImage, (first_center.u, first_center.v),(second_center.u, second_center.v), (20, 100, 90), 3)
-                    cv2.putText(graphImage, f"{center2centerDistance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (20, 50, 200), 1)
+                    cv2.putText(graphImage, f"{center2centerDistance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
                 
                 # if their center is closer than the threshold then they are candidate for "touch"
                 elif check_threshold > center2centerDistance:
@@ -447,11 +461,11 @@ class GraphDrawer:
         # Emphasize object centers
         for _id in obj_ids:
             center = centers[_id]
-            cv2.circle(graphImage, (center.u, center.v), 3, (0, 51, 255), -1)
+            cv2.circle(graphImage, (center.u, center.v), 2, (0, 51, 255), -1)
             if show_details:
                 cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
-        print(self.relation_matrix)
+        # print(self.relation_matrix)
         self.simpleGraph.show(self.relation_matrix)
 
         return graphImage

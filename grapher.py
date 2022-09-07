@@ -348,9 +348,9 @@ class GraphDrawer:
 
         filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
 
-        if show_labels:
-            for p in filtered_allPoints:
-                cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
+        # if show_labels:
+        #     for p in filtered_allPoints:
+        #         cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
         
         return filtered_allPoints
 
@@ -379,7 +379,7 @@ class GraphDrawer:
     def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_details=True):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
         # assert touch_threshold < check_threshold
-
+        
         self._impute_and_push(curr_centers)
         self._movingAverage(curr_centers)
 
@@ -399,19 +399,24 @@ class GraphDrawer:
         # Number_of_object + table
         self.relation_matrix=np.zeros((self.num_obj+1, self.num_obj+1))
         
+        distance_dict={}
 
         # Create pcl for all of them, and form table-object relations
         self.pcl_dict={}
+        avrNumPoints=0
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
             self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth, show_details)
-
+            avrNumPoints+=len(self.pcl_dict[id_])
             # Also calculate the distance to table
             tempDist=self.tableRelation.getMinDistFromTable(self.pcl_dict[id_])
+            distance_dict[cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist
+            
             if table_threshold>tempDist:
                 self.relation_matrix[id_-1, -1]=1
                 self.relation_matrix[-1, id_-1]=1
 
+        print("Average selected points: ", avrNumPoints/len(self.pcl_dict))
 
         # In the future to implement multiprocessing, we need to modify following
 
@@ -434,7 +439,9 @@ class GraphDrawer:
 
                     cv2.line(graphImage, (first_center.u, first_center.v),(second_center.u, second_center.v), (20, 100, 90), 3)
                     cv2.putText(graphImage, f"{center2centerDistance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
-                
+                    
+                    distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=center2centerDistance
+
                 # if their center is closer than the threshold then they are candidate for "touch"
                 elif check_threshold > center2centerDistance:
 
@@ -452,6 +459,8 @@ class GraphDrawer:
                         cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
                         cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
 
+                        distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
+
                         # if closest_p1 is not None:
                             # cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
@@ -462,13 +471,13 @@ class GraphDrawer:
         for _id in obj_ids:
             center = centers[_id]
             cv2.circle(graphImage, (center.u, center.v), 2, (0, 51, 255), -1)
-            if show_details:
-                cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
+            # if show_details:
+                # cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
         # print(self.relation_matrix)
         self.simpleGraph.show(self.relation_matrix)
 
-        return graphImage
+        return graphImage, distance_dict
 
 
 class SimpleStableGraph:

@@ -26,12 +26,12 @@ KINECT:
 
 
 LABEL_MAP:
-  "1": "hand"
-  "2": "pan"
-  "3": "spoon"
+  "1": "left"
+  "2": "right"
+  "3": "bowl"
   "4": "balls"
-  "5": "table"
-  "6": "cup"
+  "5": "pan"
+  "6": "table"
 
 GRAPHER:
   EVERY_NTH_ELEMENT: 10

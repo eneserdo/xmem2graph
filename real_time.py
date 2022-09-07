@@ -20,7 +20,7 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord, load_config, argparser
+from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image
 
 # Global variables
 # label_map={1: "hand",
@@ -34,6 +34,11 @@ ZOOM_COEF=1.2
 
 cfg=load_config("./config.yml")
 
+def dictToText(d):
+    text=""
+    for key, value in d.items():
+        text=text+str(key)+ ': '+ str(round(value, 1))+"\n"
+    return text
 
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
@@ -148,15 +153,17 @@ def main(args):
     
     shift_x = args.shift_x
     shift_y = args.shift_y
+
+    verbosity=args.verbosity_level
     
     # rosrunner = RosRun()
-    record_frames=False
+    record_frames=args.record_frames
     run_xmem=False
     show_blended=False
     graph_show_details=True
     fps=0
     timer=Timer()
-
+    i=1
     import glob
 
     with torch.cuda.amp.autocast(enabled=True):
@@ -211,8 +218,8 @@ def main(args):
                 cv2.namedWindow("graphImage")
                 cv2.setMouseCallback('graphImage', print_coord)
                 cv2.createTrackbar('check_threshold','graphImage',500,750,nothing)
-                cv2.createTrackbar('touch_threshold','graphImage',15,100,nothing)
-                cv2.createTrackbar('table_threshold','graphImage',20,100,nothing)
+                cv2.createTrackbar('touch_threshold','graphImage',25,100,nothing)
+                cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
                 run_xmem=True
 
                 tableRelation=TableRelation(rgb_img, depth_img, num_objects, use_existing=args.table_points_ready)
@@ -251,7 +258,7 @@ def main(args):
                 table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
                 
                 start_graph=perf_counter()
-                graphImage=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_details=graph_show_details)
+                graphImage, distance_dict=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_details=graph_show_details)
                 
                 # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, touch_threshold)
 
@@ -262,7 +269,7 @@ def main(args):
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
 
 
-                visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                # visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 
                 # tableRelation._test(table_threshold, rgb_img, depth_img)
                 # _, prediction_mask = cv2.threshold(prediction*2, 1, 255, cv2.THRESH_BINARY)
@@ -274,7 +281,23 @@ def main(args):
                 graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
 
                 if record_frames:
-                    pass
+                    # Combines graph, simple graph and segmented image
+                    h1,w1,c1=graphImage.shape
+                    ssg=cv2.imread("simpleStableGraph.png")
+                    h2, w2, c2=ssg.shape
+
+                    combined=np.zeros((2*h1, w1+w2, c1), dtype=np.uint8)
+                    
+                    combined[:h1, :w1]=visualization
+                    combined[h1:, :w1]=graphImage
+                    combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
+                    # combined=cv2.putText(combined, dictToText(distance_dict), (w1+5,h1-h2//2-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
+                    combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+                    
+                    cv2.imshow("combined", combined)
+                    cv2.imwrite(f"results/combined_{i:0>5}.png", combined)
+                    i+=1
+
 
                 cv2.imshow("graphImage", graphImage)
                 cv2.imshow("vis", visualization)
@@ -352,8 +375,11 @@ def main(args):
                 shift_x=0
             
             elif key==32: # space keycode
-                cv2.waitKey(0)
+                key=0
                 print("press any key to continue")
+                while key != 32:
+                    key=cv2.waitKey(0) & 0xFF
+                
 
 
         # if os.path.exists("./ritm_interactive_segmentation/initial.png"):
@@ -372,4 +398,5 @@ if __name__ == '__main__':
     args=argparser()
 
     assert not ((args.set_mask is True) and (args.mask_ready is True))
+    
     main(args)

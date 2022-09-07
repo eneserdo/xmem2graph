@@ -53,7 +53,6 @@ class Timer:
         return val
 
 
-
 def convert_from_uvd(u, v, d):
     """
     u, v, d -> x, y, z
@@ -76,7 +75,6 @@ def convert_from_uvd(u, v, d):
     y = (v-cy)*z/f
 
     return x, y, z
-
 
 
 
@@ -182,7 +180,11 @@ def argparser():
     return ap.parse_args()
 
 
-
+def dictToText(d):
+    text=""
+    for key, value in d.items():
+        text=text+str(key)+ ': '+ str(round(value))+"\n"
+    return text
 
 
 # Borrowed from https://stackoverflow.com/a/73471951/10006394 

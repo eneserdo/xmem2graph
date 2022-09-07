@@ -453,11 +453,11 @@ class GraphDrawer:
                 elif check_threshold > center2centerDistance:
 
                     # candidate
-                    #cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
+                    # cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
 
                     # if their closest points are touching they are touched for sure
-                    # closest_p1, closest_p2, minDist = closestDistanceBtwMasks((mask == int(first_id))*1, first_center, first_id, (mask == int(second_id))*1, second_center, second_id, depth, graphImage, show_labels)
-                    minDistance=getAvrMinDistBtwPoints(self.pcl_dict[first_id], self.pcl_dict[second_id], N=10)
+                    # Increase N if there are many false positive 
+                    minDistance=getAvrMinDistBtwPoints(self.pcl_dict[first_id], self.pcl_dict[second_id], N=6)
 
                     if touch_threshold > minDistance:
                         self.relation_matrix[first_id-1, second_id-1]=1

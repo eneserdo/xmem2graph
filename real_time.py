@@ -20,7 +20,7 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image
+from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText
 
 # Global variables
 # label_map={1: "hand",
@@ -33,12 +33,6 @@ from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_te
 ZOOM_COEF=1.2
 
 cfg=load_config("./config.yml")
-
-def dictToText(d):
-    text=""
-    for key, value in d.items():
-        text=text+str(key)+ ': '+ str(round(value))+"\n"
-    return text
 
 def putNames(graphImg, cntrs):
     for id, center in cntrs.items():
@@ -175,11 +169,14 @@ def main(args):
                 # temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
                 # temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
         
-        rgb_files=sorted(glob.glob("sampleVids/zed_balls2/rgb/*.npy"))
-        depth_files=sorted(glob.glob("sampleVids/zed_balls2/depth/*.npy"))
+        rgb_files=sorted(glob.glob("sampleVids/zed_conf50/rgb/*.npy"))
+        depth_files=sorted(glob.glob("sampleVids/zed_conf50/depth/*.npy"))
+        counter=0
         for rgb_path, depth_path in zip(rgb_files, depth_files):
             # temp_rgb=cv2.imread(rgb_path, -1)
             # temp_depth=cv2.imread(depth_path, -1)
+            counter+=1
+            print(counter, "/", len(rgb_files))
 
             temp_rgb=np.load(rgb_path)
             temp_depth=np.load(depth_path)
@@ -297,10 +294,10 @@ def main(args):
                     cv2.imshow("combined", combined)
                     cv2.imwrite(f"results/combined_{i:0>5}.png", combined)
                     i+=1
-
-
-                # cv2.imshow("graphImage", graphImage)
-                # cv2.imshow("vis", visualization)
+                
+                else:
+                    cv2.imshow("graphImage", graphImage)
+                    cv2.imshow("vis", visualization)
 
             else:
                 if cfg.CAMERA_NAME=="ZED":

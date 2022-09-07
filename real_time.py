@@ -37,7 +37,7 @@ cfg=load_config("./config.yml")
 def dictToText(d):
     text=""
     for key, value in d.items():
-        text=text+str(key)+ ': '+ str(round(value, 1))+"\n"
+        text=text+str(key)+ ': '+ str(round(value))+"\n"
     return text
 
 def putNames(graphImg, cntrs):
@@ -299,8 +299,8 @@ def main(args):
                     i+=1
 
 
-                cv2.imshow("graphImage", graphImage)
-                cv2.imshow("vis", visualization)
+                # cv2.imshow("graphImage", graphImage)
+                # cv2.imshow("vis", visualization)
 
             else:
                 if cfg.CAMERA_NAME=="ZED":

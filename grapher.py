@@ -100,11 +100,17 @@ def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray, addCenterToBoun
 
         ratios=[0.4, 0.75, 0.98]
 
-        for bP in boundaryPoints:
-            for r in ratios:
-                tempP=(bP*r+(1-r)*center).astype(np.uint32)
-                bP_as_coord.append(Coord(tempP.item(1), tempP.item(0), depth.item((tempP[0], tempP[1]))))
-
+        for i, bP in enumerate(boundaryPoints):
+            for k, r in enumerate(ratios):
+                """
+                k=0: get every 3rd
+                k=1: get every 2nd
+                k=2: get everything
+                """
+                if i%(len(ratios)-k)==0:
+                    tempP=(bP*r+(1-r)*center).astype(np.uint32)
+                    bP_as_coord.append(Coord(tempP.item(1), tempP.item(0), depth.item((tempP[0], tempP[1]))))
+                
     return bP_as_coord
 
 
@@ -399,6 +405,7 @@ class GraphDrawer:
         # Number_of_object + table
         self.relation_matrix=np.zeros((self.num_obj+1, self.num_obj+1))
         
+        # Record all relevant distances
         distance_dict={}
 
         # Create pcl for all of them, and form table-object relations
@@ -466,6 +473,8 @@ class GraphDrawer:
                         # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
                     
                     # cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
+                    elif 2*touch_threshold > minDistance:
+                        distance_dict["*"+cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
 
         # Emphasize object centers
         for _id in obj_ids:

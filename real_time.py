@@ -2,16 +2,15 @@ import os
 import sys
 import cv2
 import torch
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
+# import torch.nn.functional as F
+# from torch.utils.data import DataLoader
 import numpy as np
-from PIL import Image
 from time import perf_counter
 import subprocess
 
 sys.path.append("./XMem")
-from inference.data.test_datasets import LongTestDataset, DAVISTestDataset, YouTubeVOSTestDataset
-from inference.data.mask_mapper import MaskMapper
+# from inference.data.test_datasets import LongTestDataset, DAVISTestDataset, YouTubeVOSTestDataset
+# from inference.data.mask_mapper import MaskMapper
 from model.network import XMem
 from inference.inference_core import InferenceCore
 from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
@@ -21,14 +20,9 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer, TableRelation
 from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText
+from Mask import mask2orderedCenters, adaptMask
 
-# Global variables
-# label_map={1: "hand",
-#            2: "pan",
-#            3: "cup",
-#            4: "spoon",
-#            5: "foam_balls",
-#            6: "hand"}
+
 
 ZOOM_COEF=1.2
 
@@ -61,57 +55,6 @@ def print_coord(event,x,y, flags, param):
         prev_coord=np.array([x1, y1, z1])
 
 
-def _getSingleCenterFromMask(pred, depth):
-    """
-        If pred has SINGLE segments
-    """
-    _, thresh = cv2.threshold(pred*20, 5, 255, 0)
-    M = cv2.moments(thresh)
-    cX = int(M["m10"] / M["m00"])
-    cY = int(M["m01"] / M["m00"])
-
-
-    # return np.array([cY, cX, depth[cY, cX][0]])
-    # return np.array([cY, cX])
-    return Coord(cX, cY, depth.item((cY, cX)))
-     
-
-def getOrderedCenters(pred, depth):
-
-    ids = np.unique(pred)[1:]
-    centers = {}
-
-    for id in ids:
-        # centers[id] = getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
-        centers[id] = _getSingleCenterFromMask((pred == id).astype(pred.dtype), depth)
-        # if display:
-        #     cv2.circle(pred, (centers[id][1], centers[id][0]), 3, 255, -1)
-        #     cv2.putText(pred, f"{centers[id]}", (centers[id][1] - 1, centers[id][0] - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-
-    return centers
-
-
-def adapt_mask(mask_name):
-    """
-    XMem requires mask image to have unique values of [0, 1, 2 ... num_obj]
-    """
-    mask_image = np.array(Image.open(mask_name))
-    uniques = np.unique(mask_image)
-    # print(uniques)
-
-    num_obj = len(uniques) - 1
-
-    new_mask = np.zeros_like(mask_image).astype(np.int64)
-
-    for i, m in enumerate(uniques):
-        new_mask += (mask_image == m)*i
-
-    mask_image = new_mask.astype(np.uint8).copy()
-
-    # print(np.unique(mask_image))
-    num_obj = len(np.unique(mask_image)) - 1
-    print("Mask is ready")
-    return num_obj, mask_image
 
 def nothing(x):
     pass
@@ -135,7 +78,9 @@ def main(args):
     }
 
 
+    assert torch.cuda.is_available()
     device="cuda"
+
 
     print("CUDA version: ",torch.version.cuda)
     network = XMem(config, './XMem/saves/XMem.pth').eval().to(device)
@@ -186,8 +131,7 @@ def main(args):
             if temp_rgb is None:
                 break
 
-            # print("="*50)
-            rgb_img=shift((temp_rgb).copy(), shift_x, shift_y)
+            rgb_img=shift(temp_rgb, shift_x, shift_y)
             depth_img=shift(temp_depth, -shift_x, -shift_y)
 
             if set_mask:
@@ -199,7 +143,7 @@ def main(args):
                     cv2.imwrite("./ritm_interactive_segmentation/initial.png", rgb_img)
                     subprocess.run("cd ./ritm_interactive_segmentation && ./run.sh", shell=True)
 
-                num_objects, mask = adapt_mask('./ritm_interactive_segmentation/' + args.mask_name)
+                num_objects, mask = adaptMask('./ritm_interactive_segmentation/' + args.mask_name)
                 processor = InferenceCore(network, config=config)
                 processor.set_all_labels(range(1, num_objects+1)) # consecutive labels
                 
@@ -247,7 +191,7 @@ def main(args):
                 frame_torch, _ = image_to_torch(rgb_img, device=device)
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
-                centers=getOrderedCenters(prediction, depth_img)
+                centers=mask2orderedCenters(prediction, depth_img)
                 # print("Centers:", centers)
 
                 check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')
@@ -277,27 +221,23 @@ def main(args):
                 visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
                 graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
 
-                if record_frames:
-                    # Combines graph, simple graph and segmented image
-                    h1,w1,c1=graphImage.shape
-                    ssg=cv2.imread("simpleStableGraph.png")
-                    h2, w2, c2=ssg.shape
+                # Combines graph, simple graph and segmented image
+                h1,w1,c1=graphImage.shape
+                ssg=cv2.imread("simpleStableGraph.png")
+                h2, w2, c2=ssg.shape
+                combined=np.zeros((2*h1, w1+w2, c1), dtype=np.uint8)
+                
+                combined[:h1, :w1]=visualization
+                combined[h1:, :w1]=graphImage
+                combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
+                # combined=cv2.putText(combined, dictToText(distance_dict), (w1+5,h1-h2//2-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
+                combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+                
+                cv2.imshow("combined", combined)
 
-                    combined=np.zeros((2*h1, w1+w2, c1), dtype=np.uint8)
-                    
-                    combined[:h1, :w1]=visualization
-                    combined[h1:, :w1]=graphImage
-                    combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
-                    # combined=cv2.putText(combined, dictToText(distance_dict), (w1+5,h1-h2//2-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
-                    combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
-                    
-                    cv2.imshow("combined", combined)
+                if record_frames:
                     cv2.imwrite(f"results/combined_{i:0>5}.png", combined)
                     i+=1
-                
-                else:
-                    cv2.imshow("graphImage", graphImage)
-                    cv2.imshow("vis", visualization)
 
             else:
                 if cfg.CAMERA_NAME=="ZED":

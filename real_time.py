@@ -130,10 +130,11 @@ def main(args):
 
             if temp_rgb is None:
                 break
-
+            
+            S1=perf_counter()
             rgb_img=shift(temp_rgb, shift_x, shift_y)
             depth_img=shift(temp_depth, -shift_x, -shift_y)
-
+            S2=perf_counter()
             if set_mask:
                 cv2.destroyAllWindows()
                 set_mask=False
@@ -188,12 +189,14 @@ def main(args):
 
             
             if run_xmem:
+                S1=perf_counter()
                 frame_torch, _ = image_to_torch(rgb_img, device=device)
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
+                S2=perf_counter()
                 centers=mask2orderedCenters(prediction, depth_img)
                 # print("Centers:", centers)
-
+                S3=perf_counter()
                 check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')
                 touch_threshold = cv2.getTrackbarPos('touch_threshold','graphImage')
                 table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
@@ -207,8 +210,9 @@ def main(args):
                 print("graph time:", round(perf_counter()-start_graph, 3))
                 # graphDrawer.getTableRelations()
                 
+                S1=perf_counter()
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
-
+                S2=perf_counter()
 
                 # visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 
@@ -217,23 +221,24 @@ def main(args):
                 # masked_rgb = cv2.bitwise_and(graphImage, graphImage, mask=prediction_mask)
                 # masked_depth = cv2.bitwise_and(depth_img, depth_img, mask=prediction_mask)
                 # cv2.imshow("masked_rgb", masked_rgb)
-
+                S1=perf_counter()
                 visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
                 graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
-
-                # Combines graph, simple graph and segmented image
-                h1,w1,c1=graphImage.shape
-                ssg=cv2.imread("simpleStableGraph.png")
-                h2, w2, c2=ssg.shape
-                combined=np.zeros((2*h1, w1+w2, c1), dtype=np.uint8)
+                # S1=perf_counter()
+                # # Combines graph, simple graph and segmented image
+                # h1,w1,c1=graphImage.shape
+                # ssg=cv2.imread("simpleStableGraph.png")
+                # h2, w2, c2=ssg.shape
+                # combined=np.zeros((2*h1, w1+w2, c1), dtype=np.uint8)
                 
-                combined[:h1, :w1]=visualization
-                combined[h1:, :w1]=graphImage
-                combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
-                # combined=cv2.putText(combined, dictToText(distance_dict), (w1+5,h1-h2//2-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
-                combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
-                
-                cv2.imshow("combined", combined)
+                # combined[:h1, :w1]=visualization
+                # combined[h1:, :w1]=graphImage
+                # combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
+                # # combined=cv2.putText(combined, dictToText(distance_dict), (w1+5,h1-h2//2-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
+                # S1=perf_counter()
+                # combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+                # S1=perf_counter()
+                # cv2.imshow("combined", combined)
 
                 if record_frames:
                     cv2.imwrite(f"results/combined_{i:0>5}.png", combined)

@@ -459,9 +459,10 @@ class SimpleStableGraph:
         self._stable(relation_matrix)
 
         self.G.remove_edges_from(list(self.G.edges()))
+        fig = plt.figure()
         plt.clf()
         plt.axis("off")
-        axis = plt.gca()
+        axis = fig.gca()
         axis.margins(0.20)
 
         for i in range(self.num_obj):
@@ -470,5 +471,8 @@ class SimpleStableGraph:
                     self.G.add_edge(self.objNames[i], self.objNames[j])
                     
         nx.draw_networkx(self.G, self.pos, **self.options)
-        plt.savefig("simpleStableGraph.png")
-        cv2.imshow("Simple Stable Graph", cv2.imread("simpleStableGraph.png"))        
+        # plt.savefig("simpleStableGraph.png")
+        # cv2.imshow("Simple Stable Graph", cv2.imread("simpleStableGraph.png"))
+        ssg = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        ssg  = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))        
+        cv2.imshow("Simple Stable Graph", ssg)

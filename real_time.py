@@ -19,10 +19,10 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText
+from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, getMinMax
 from Mask import mask2orderedCenters, adaptMask
 
-
+import cProfile
 
 ZOOM_COEF=1.2
 
@@ -93,13 +93,11 @@ def main(args):
     shift_x = args.shift_x
     shift_y = args.shift_y
 
-    verbosity=args.verbosity_level
-    
+
     # rosrunner = RosRun()
     record_frames=args.record_frames
     run_xmem=False
     show_blended=False
-    graph_show_details=True
     fps=0
     timer=Timer()
     i=1
@@ -131,10 +129,8 @@ def main(args):
             if temp_rgb is None:
                 break
             
-            S1=perf_counter()
             rgb_img=shift(temp_rgb, shift_x, shift_y)
             depth_img=shift(temp_depth, -shift_x, -shift_y)
-            S2=perf_counter()
             if set_mask:
                 cv2.destroyAllWindows()
                 set_mask=False
@@ -189,20 +185,17 @@ def main(args):
 
             
             if run_xmem:
-                S1=perf_counter()
                 frame_torch, _ = image_to_torch(rgb_img, device=device)
                 prediction = processor.step(frame_torch)
                 prediction = torch_prob_to_numpy_mask(prediction)
-                S2=perf_counter()
                 centers=mask2orderedCenters(prediction, depth_img)
                 # print("Centers:", centers)
-                S3=perf_counter()
                 check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')
                 touch_threshold = cv2.getTrackbarPos('touch_threshold','graphImage')
                 table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
-                
+ 
                 start_graph=perf_counter()
-                graphImage, distance_dict=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img, show_details=graph_show_details)
+                graphImage, distance_dict, ssg=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img)
                 
                 # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, touch_threshold)
 
@@ -210,35 +203,26 @@ def main(args):
                 print("graph time:", round(perf_counter()-start_graph, 3))
                 # graphDrawer.getTableRelations()
                 
-                S1=perf_counter()
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
-                S2=perf_counter()
+                visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                
 
-                # visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-                
                 # tableRelation._test(table_threshold, rgb_img, depth_img)
-                # _, prediction_mask = cv2.threshold(prediction*2, 1, 255, cv2.THRESH_BINARY)
-                # masked_rgb = cv2.bitwise_and(graphImage, graphImage, mask=prediction_mask)
-                # masked_depth = cv2.bitwise_and(depth_img, depth_img, mask=prediction_mask)
-                # cv2.imshow("masked_rgb", masked_rgb)
-                S1=perf_counter()
-                visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
-                graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
-                # S1=perf_counter()
-                # # Combines graph, simple graph and segmented image
-                # h1,w1,c1=graphImage.shape
-                # ssg=cv2.imread("simpleStableGraph.png")
-                # h2, w2, c2=ssg.shape
-                # combined=np.zeros((2*h1, w1+w2, c1), dtype=np.uint8)
+               
+                # visualization = cv2.resize(visualization, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
+                # graphImage = cv2.resize(graphImage, None, fx=ZOOM_COEF, fy=ZOOM_COEF, interpolation=cv2.INTER_CUBIC)
+               
+                # Combines graph, simple graph and segmented image
+                h1,w1,c1=graphImage.shape
+                h2, w2, c2=ssg.shape
+                combined=np.zeros((2*h1, w1+w2, c1), dtype=np.uint8)
                 
-                # combined[:h1, :w1]=visualization
-                # combined[h1:, :w1]=graphImage
-                # combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
-                # # combined=cv2.putText(combined, dictToText(distance_dict), (w1+5,h1-h2//2-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
-                # S1=perf_counter()
-                # combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
-                # S1=perf_counter()
-                # cv2.imshow("combined", combined)
+                combined[:h1, :w1]=visualization
+                combined[h1:, :w1]=graphImage
+                combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
+
+                combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+                cv2.imshow("combined", combined)
 
                 if record_frames:
                     cv2.imwrite(f"results/combined_{i:0>5}.png", combined)
@@ -261,7 +245,8 @@ def main(args):
                 blended = cv2.putText(blended, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 cv2.imshow('blended', blended)
             
-            
+            # print(depth_img.shape)
+            # print(getMinMax(depth_img))
             
             key = cv2.waitKey(1) & 0xFF
             #
@@ -309,9 +294,6 @@ def main(args):
                 if not show_blended:
                     cv2.destroyWindow("blended")
 
-            elif key==ord('l'):
-                graph_show_details = not graph_show_details
-
             elif key==ord('t'):
                 shift_y=0
                 shift_x=0
@@ -332,6 +314,8 @@ def main(args):
 
         if os.path.exists("./simpleStableGraph.png"):
             os.remove("./simpleStableGraph.png")
+    
+    
 
 
 if __name__ == '__main__':
@@ -341,4 +325,12 @@ if __name__ == '__main__':
 
     assert not ((args.set_mask is True) and (args.mask_ready is True))
     
-    main(args)
+    if args.profile:
+        try:
+            cProfile.run("main(args)", "output.prof")
+        finally:
+            cv2.destroyAllWindows()
+            subprocess.run("snakeviz output.prof", shell=True)
+    else:
+        main(args)
+        

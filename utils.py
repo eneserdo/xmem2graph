@@ -9,25 +9,26 @@ import cv2
 
 
 def load_config(config_path):
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
     return EasyDict(cfg)
 
 
 # Global variables
-cfg=load_config("./config.yml")
+cfg = load_config("./config.yml")
 
-if cfg.CAMERA_NAME=="ZED":
-    cx=cfg.ZED.cx
-    cy=cfg.ZED.cy
-    f=cfg.ZED.f
+if cfg.CAMERA_NAME == "ZED":
+    cx = cfg.ZED.cx
+    cy = cfg.ZED.cy
+    f = cfg.ZED.f
     scale = cfg.ZED.SCALE
 
-elif cfg.CAMERA_NAME=="KINECT":
-    cx=cfg.KINECT.cx
-    cy=cfg.KINECT.cy
-    f=cfg.KINECT.f
+elif cfg.CAMERA_NAME == "KINECT":
+    cx = cfg.KINECT.cx
+    cy = cfg.KINECT.cy
+    f = cfg.KINECT.f
     scale = cfg.KINECT.SCALE
+
 
 class Timer:
     def __init__(self, name="", queue_length=10):
@@ -41,26 +42,26 @@ class Timer:
         self.start_time = perf_counter()
 
     def end_and_print(self, no_print=False):
-        elapsed = perf_counter()-self.start_time
+        elapsed = perf_counter() - self.start_time
         self.queue.append(elapsed)
 
-        if len(self.queue)>self.queue_length:
+        if len(self.queue) > self.queue_length:
             self.queue.pop(0)
 
-        val = np.round(1/np.mean(np.array(self.queue)), 2)
+        val = np.round(1 / np.mean(np.array(self.queue)), 2)
         if not no_print:
-            print(self.name+"FPS: ", val)
+            print(self.name + "FPS: ", val)
         return val
 
 
 def convert_from_uvd(u, v, d):
     """
     u, v, d -> x, y, z
-    
+
     +———— x(u)
     |
     |
-    y(v)  
+    y(v)
     """
     # FALSE!!
     # d *= scale
@@ -70,12 +71,11 @@ def convert_from_uvd(u, v, d):
     # x = x_over_z * z
     # y = y_over_z * z
 
-    z =d*scale
-    x = (u-cx)*z/f
-    y = (v-cy)*z/f
+    z = d * scale
+    x = (u - cx) * z / f
+    y = (v - cy) * z / f
 
     return x, y, z
-
 
 
 class Coord:
@@ -89,17 +89,17 @@ class Coord:
         self.v = v
         self.d = d
 
-        if not (isinstance(u, float) or isinstance(u, int)): 
+        if not (isinstance(u, float) or isinstance(u, int)):
             print("Erorr")
             print(f"{u=}, {type(u)=}")
             raise ValueError
 
-        if not (isinstance(v, float) or isinstance(v, int)): 
+        if not (isinstance(v, float) or isinstance(v, int)):
             print("Erorr")
             print(f"{v=}, {type(v)=}")
             raise ValueError
 
-        if not (isinstance(d, float) or isinstance(d, int)): 
+        if not (isinstance(d, float) or isinstance(d, int)):
             print("Erorr")
             print(f"{d=}, {type(d)=}")
             raise ValueError
@@ -109,13 +109,15 @@ class Coord:
         self.realCoord = np.array([self.x, self.y, self.z])
 
     def realDistanceTo(self, other) -> float:
-        return sqrt(np.sum((self.realCoord - other.realCoord)**2))
+        return sqrt(np.sum((self.realCoord - other.realCoord) ** 2))
 
     # def imgDotProductWith(self, other):
     #     return (self.imgCoord-other.imgCoord)/np.linalg.norm(self.imgCoord-other.imgCoord)
 
     def realUnitVectorTo(self, other) -> np.ndarray:
-        return (other.realCoord-self.realCoord)/np.linalg.norm(self.realCoord-other.realCoord)
+        return (other.realCoord - self.realCoord) / np.linalg.norm(
+            self.realCoord - other.realCoord
+        )
 
     def __repr__(self) -> str:
         return f"({round(self.x)}, {round(self.y)}, {round(self.z)})"
@@ -148,13 +150,13 @@ def arrayAndDepthToCoord(array, depth_map):
 def almost_equal(a, b, eps=1e-5):
     # assert (isinstance(a, float) or isinstance(a, int))
     # assert (isinstance(b, float) or isinstance(b, int))
-    if not ((isinstance(a, float) or isinstance(a, int))):
-        print_debug(a=a)
-        
-    if not ((isinstance(b, float) or isinstance(b, int))):
-        print_debug(b=b)
+    # if not ((isinstance(a, float) or isinstance(a, int))):
+    #     print_debug(a=a)
 
-    if abs(a-b)<eps:
+    # if not ((isinstance(b, float) or isinstance(b, int))):
+    #     print_debug(b=b)
+
+    if abs(a - b) < eps:
         return True
     else:
         False
@@ -164,30 +166,92 @@ def argparser():
     # camera name
     # help="These are dynamic parameters, for others, check 'config.yml' "
     ap = argparse.ArgumentParser()
-    ap.add_argument("-mr", "--mask_ready", action="store_true" , help="to load already existing mask")
-    ap.add_argument("-sm", "--set_mask", action="store_true" , help="to initialize RITM directly")
+    ap.add_argument(
+        "-mr", "--mask_ready", action="store_true", help="to load already existing mask"
+    )
+    ap.add_argument(
+        "-sm", "--set_mask", action="store_true", help="to initialize RITM directly"
+    )
 
-    ap.add_argument("-tpr", "--table_points_ready", action="store_true", help="to load already existing points")
+    ap.add_argument(
+        "-tpr",
+        "--table_points_ready",
+        action="store_true",
+        help="to load already existing points",
+    )
+
+    ap.add_argument("-p", "--profile", action="store_true", help="run with cProfile")
 
     ap.add_argument("-r", "--record_frames", action="store_true", help="record")
 
-    ap.add_argument("-v", "--verbosity_level", type=int ,default=1, help="options: 0, 1, 2")
-
-    ap.add_argument("-mn", "--mask_name", default="mask.png", help="to load already existing mask")
-    ap.add_argument("-sx", "--shift_x", type=int ,default=0, help="shift in x axis to align depth with rgb")
-    ap.add_argument("-sy", "--shift_y", type=int ,default=0, help="shift in y axis to align depth with rgb")
+    ap.add_argument(
+        "-mn", "--mask_name", default="mask.png", help="to load already existing mask"
+    )
+    ap.add_argument(
+        "-sx",
+        "--shift_x",
+        type=int,
+        default=0,
+        help="shift in x axis to align depth with rgb",
+    )
+    ap.add_argument(
+        "-sy",
+        "--shift_y",
+        type=int,
+        default=0,
+        help="shift in y axis to align depth with rgb",
+    )
 
     return ap.parse_args()
 
 
 def dictToText(d):
-    text=""
+    text = ""
     for key, value in d.items():
-        text=text+str(key)+ ': '+ str(round(value))+"\n"
+        text = text + str(key) + ": " + str(round(value)) + "\n"
     return text
 
 
-# Borrowed from https://stackoverflow.com/a/73471951/10006394 
+def getMinMax(depth):
+    h, w = depth.shape
+    x, y, z = convert_from_uvd(0, 0, 4)
+
+    max_x, max_y, max_z = -float("infinity"), -float("infinity"), -float("infinity")
+    min_x, min_y, min_z = float("infinity"), float("infinity"), float("infinity")
+
+    for v in range(h):
+        for u in range(w):
+            d = depth.item((v, u))
+
+            if almost_equal(d, 0):
+                continue
+            x, y, z = convert_from_uvd(u, v, d)
+
+            min_x = x if min_x > x else min_x
+            min_y = y if min_y > y else min_y
+            min_z = z if min_z > z else min_z
+
+            max_x = x if max_x < x else max_x
+            max_y = y if max_y < y else max_y
+            max_z = z if max_z < z else max_z
+
+    return np.array([min_x, min_y, min_z]), np.array([max_x, max_y, max_z])
+
+
+def writeCenters(i, centers_dict, max_, min_):
+    for id_, center in centers_dict.items():
+        name = cfg.LABEL_MAP[id_]
+
+        normalized = (center.realCoord() - min_) / (max_ - min_)
+
+        with open(f"center_{name}.txt", "a") as f:
+            f.writelines(
+                f"{i}: {normalized.item(0), normalized.item(1), normalized.item(2)}"
+                + "\n"
+            )
+
+
+# Borrowed from https://stackoverflow.com/a/73471951/10006394
 def add_text_to_image(
     image_rgb: np.ndarray,
     label: str,

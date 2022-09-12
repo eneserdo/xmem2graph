@@ -4,8 +4,8 @@ import networkx as nx
 from math import sqrt
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
-
-from utils import convert_from_uvd, Coord, print_debug, arrayAndDepthToCoord, almost_equal, load_config
+from time import perf_counter
+from utils import convert_from_uvd, Coord, almost_equal, load_config
 from Mask import mask2BoundaryPoints,  mask2BoundaryPoints, getAvrMinDistBtwPoints, getMinDistBtwPoints
 
 cfg=load_config("./config.yml")
@@ -40,10 +40,8 @@ class TableRelation:
             self._selectPoints(img, depth) # sets self.table_points
 
         assert self.table_points.shape[0]>=3
-
-        # zeros = np.zeros((self.table_points.shape[0])).reshape(-1,1)
         
-        # Since "A@[x, y, z, 1] = 0" has a trivial solution (p=0), instead I used "A@[x, y, 1] = z" 
+        # Since "A@[x, y, z, 1] = 0" has a trivial solution (p=0), instead, I used "A@[x, y, 1] = z" 
         ones = np.ones((self.table_points.shape[0])).reshape(-1,1)
         A = np.concatenate([self.table_points[:,0:2], ones], axis=1) 
         z=self.table_points[:, 2]
@@ -51,7 +49,6 @@ class TableRelation:
         # z= a*x + b*y + c
         self.p, _, _, _ = lstsq(A, z)
         print("p: ", self.p)
-        # self._distToPoint = lambda x, y, z: (x*p[0]+ y*p[1]+ z*p[2]+p[3])/(sqrt(p[0]**2+p[1]**2+ p[2]**2))
         self._distToPoint = lambda _x, _y, _z: abs(_x*self.p[0] + _y*self.p[1] + self.p[2] -1*_z)/(sqrt(self.p[0]**2 + self.p[1]**2 + 1))
         
         # self.relations=np.zeros((num_obj))
@@ -69,7 +66,7 @@ class TableRelation:
 
 
     def _selectPoints(self, img_point_select, depth):
-        ### inner func ###
+        ### inner func: start ###
         def click_event(event, x, y, flags, params):
             if event == cv2.EVENT_LBUTTONDOWN:
                 d_=depth.item((int(y), int(x)))
@@ -83,10 +80,9 @@ class TableRelation:
                     cv2.circle(img_point_select, (x, y), 2, (0, 51, 255), -1)
                     cv2.imshow("Choose points on table", img_point_select)
 
-        ### inner func ###
+        ### inner func: end ###
 
         self.table_points=np.array([])
-        # cv2.destroyAllWindows()
         cv2.imshow("Choose points on table", img_point_select)
 
         cv2.setMouseCallback('Choose points on table', click_event)
@@ -115,46 +111,22 @@ class GraphDrawer:
         Transforms semantic segmented image masks to graphs on image
     """
 
-    def __init__(self, num_obj, queue_length=-1, beta=0.95, avr_on=False, tr=None):
+    def __init__(self, num_obj, beta=0.95, tr=None):
 
-        # if queue_length==1 and beta==0:
-        # raise ValueError("For queue length 1, moving avr is used, so specify the beta")
 
-        if (queue_length != -1) or (avr_on is True):
-            raise NotImplementedError("Averaging queue is not implemented")
-        # self.queue_length=queue_length
-        # self.centers_queue=[]
+        assert (beta > 0.8) and (beta <=1.0)
 
         self.movingAverageCenters = {}
         self.num_obj = num_obj
         self.beta = beta
         self.relation_matrix=None
 
-        self.simpleGraph=SimpleStableGraph(num_obj+1)
+        self.simpleGraph=SimpleStableGraph(num_obj+1) # +1 is table
         
         if tr is None:
             raise ValueError
         self.tableRelation=tr
-        # self.avr_centers={}
-        # self.avr_on = avr_on
-        # for i in range(1,1+num_obj):
-        #     self.avr_centers[i]=np.zeros((3))
 
-    # def _impute_and_push(self, centers):
-
-    #     if len(self.centers_queue)==self.queue_length:
-
-    #         for key, value in centers.items():
-    #             # z koordinatı 0 gelirse onun yerine ortalamayı koy
-    #             if value[2]==0:
-    #                 print("imputed: ", key)
-    #                 centers[key][2]=self.avr_centers[key][2]
-
-    #         self.centers_queue.append(centers)
-    #         self.centers_queue.pop(0)
-    #     else:
-    #         print("queue not yet filled")
-    #         self.centers_queue.append(centers)
 
     def _impute_and_push(self, curr_center: dict):
         """
@@ -179,34 +151,8 @@ class GraphDrawer:
             for k in (self.movingAverageCenters.keys()-curr_center.keys()):
                 del self.movingAverageCenters[k]
 
-                # if center.d==0:
-                #     try:
-                #         # for already available ones (update them)
-                #         curr_center[id_].update_d(self.movingAverageCenters[id_].d)
-                #     except:
-                #         # for new comers (add them)
-                #         self.movingAverageCenters[id_]=center
-                #         # print("ERROR:")
-                #         # print(f"{curr_center=}")
-                #         # print(f"{self.movingAverageCenters=}")
-                #         # raise KeyError
 
-    # def _average(self):
-    #     counter=np.zeros((self.num_obj))
-    #     for i in range(1,1+self.num_obj):
-    #         self.avr_centers[i]=np.zeros((3))
-
-    #     for t in self.centers_queue:
-    #         for key, value in t.items():
-    #             counter[int(key)-1]+=1
-    #             self.avr_centers[key]+=value
-
-    #     for i in range(1,1+self.num_obj):
-    #         self.avr_centers[i]=(self.avr_centers[i]/counter[i-1]).astype(np.int64)
-
-        # self.avr_centers=self.centers_queue[-1]
-
-    def _movingAverage(self, curr_center):
+    def _movingAverage(self, curr_center: dict):
 
         # if it is first call
         if len(self.movingAverageCenters) == 0:
@@ -221,44 +167,16 @@ class GraphDrawer:
             for id_, center in curr_center.items():
                 self.movingAverageCenters[id_].d = self.movingAverageCenters[id_].d*self.beta + (1-self.beta)*center.d
 
-            # for id_, center in curr_center.items():
-            #     try:
-            #         # for already available ones (update them)
-            #         self.movingAverageCenters[id_].d=(self.movingAverageCenters[id_].d*self.beta +(1-self.beta)*center.d).astype(np.int64)
-            #     except KeyError:
-            #         # for new comers (add them)
-            #         self.movingAverageCenters[id_]=center
-
-            # # for unused keys (remove them)
-            # for k in (self.movingAverageCenters.keys()-curr_center.keys()):
-            #     del self.movingAverageCenters[k]
  
-    def _drawSimpleGraph(self):
-        self.G.clear()
-        plt.clf()
-        is_ok=False
-        #self.G.add_node(0)
-        for i in range(self.num_obj):
-            for j in range(i, self.num_obj):
-                if self.relation_matrix[i,j]==1:
-                    self.G.add_edge(i+1, j+1)
-                    is_ok=True
-
-        if is_ok:
-            random_pos = nx.random_layout(self.G, seed=42)
-            pos = nx.spring_layout(self.G, pos=random_pos)
-            nx.draw_networkx(self.G, pos, **self.options)
-            plt.pause(0.00001)
-
     @staticmethod
-    def _getPCL(graphImage, object_mask, depth_img, show_labels):
+    def _getPCL(graphImage: np.ndarray, object_mask: np.ndarray, depth_img: np.ndarray):
         allPoints=mask2BoundaryPoints(object_mask,depth_img, addCenterToBoundary=True) #+ mask2InnerPoints(object_mask,depth_img)
 
         filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
 
-        # if show_labels:
-        #     for p in filtered_allPoints:
-        #         cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
+        if cfg.VISIBLE.PCL:
+            for p in filtered_allPoints:
+                cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
         
         return filtered_allPoints
 
@@ -270,7 +188,7 @@ class GraphDrawer:
 
         assert np.unique(mask).shape[0]==2 # Only one object must be selected
 
-        pcl=self._getPCL(None, mask, depth, False)
+        pcl=self._getPCL(None, mask, depth)
 
         img_test=img.copy()
         print(pcl)
@@ -284,8 +202,9 @@ class GraphDrawer:
         img_test = cv2.resize(img_test, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
         cv2.imshow("img_test", img_test)
         
-    def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth, show_details=True):
+    def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
+        
         # assert touch_threshold < check_threshold
         
         self._impute_and_push(curr_centers)
@@ -295,7 +214,7 @@ class GraphDrawer:
 
         obj_ids = centers.keys()
 
-        if show_details:
+        if cfg.VISIBLE.SEGMENTATION:
             # graphImage=cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
             # graphImage[(graphImage>0).all(-1)] = [204, 51, 51]
 
@@ -315,11 +234,11 @@ class GraphDrawer:
         avrNumPoints=0
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
-            self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth, show_details)
+            self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth)
             avrNumPoints+=len(self.pcl_dict[id_])
+
             # Also calculate the distance to table
             tempDist=self.tableRelation.getMinDistFromTable(self.pcl_dict[id_])
-            
             
             if table_threshold>tempDist:
                 self.relation_matrix[id_-1, -1]=1
@@ -331,7 +250,6 @@ class GraphDrawer:
         print("Average selected points: ", avrNumPoints/len(self.pcl_dict))
 
         # In the future to implement multiprocessing, we need to modify following
-
         for first_id in obj_ids:
             first_center = centers[first_id]
 
@@ -350,15 +268,15 @@ class GraphDrawer:
                     self.relation_matrix[second_id-1, first_id-1]=1
 
                     cv2.line(graphImage, (first_center.u, first_center.v),(second_center.u, second_center.v), (20, 100, 90), 3)
-                    cv2.putText(graphImage, f"{center2centerDistance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
+                    
+                    if cfg.VISIBLE.MIN_DIST:
+                        cv2.putText(graphImage, f"{center2centerDistance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
                     
                     distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=center2centerDistance
 
                 # if their center is closer than the threshold then they are candidate for "touch"
                 elif check_threshold > center2centerDistance:
-
                     # candidate
-                    # cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (51, 204, 51), 1)
 
                     # if their closest points are touching they are touched for sure
                     # Increase N if there are many false positive 
@@ -369,29 +287,26 @@ class GraphDrawer:
                         self.relation_matrix[second_id-1, first_id-1]=1
 
                         cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
-                        cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
+                        if cfg.VISIBLE.MIN_DIST:
+                            cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
 
                         distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
-
-                        # if closest_p1 is not None:
-                            # cv2.line(graphImage, (closest_p1.u, closest_p1.v), (closest_p2.u, closest_p2.v), (20, 100, 90), 1)
-                        # cv2.putText(graphImage, f"{distance}", ((first_center[1]+second_center[1])//2, (first_center[0]+second_center[0])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20,50,150), 1)
                     
-                    # cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
                     elif 2*touch_threshold > minDistance:
                         distance_dict["*"+cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
+
 
         # Emphasize object centers
         for _id in obj_ids:
             center = centers[_id]
             cv2.circle(graphImage, (center.u, center.v), 2, (0, 51, 255), -1)
-            # if show_details:
-                # cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
-        # print(self.relation_matrix)
-        self.simpleGraph.show(self.relation_matrix)
+            if cfg.VISIBLE.CENTER_COORDS:
+                cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
-        return graphImage, distance_dict
+        ssg=self.simpleGraph.show(self.relation_matrix)
+
+        return graphImage, distance_dict, ssg
 
 
 class SimpleStableGraph:
@@ -408,6 +323,11 @@ class SimpleStableGraph:
         }
         
         self.objNames=[]
+        self.listOfRelationMatrix=[]
+        self._getNames()
+
+    def _getNames(self):
+        global cfg
         for i in range(1,1+self.num_obj):
             try:
                 self.objNames.append(cfg.LABEL_MAP[str(i)])
@@ -416,9 +336,8 @@ class SimpleStableGraph:
 
 
         self.G=nx.empty_graph(self.objNames)
-
         self.pos = nx.circular_layout(self.G)
-        self.listOfRelationMatrix=[]
+
 
     def _stable(self, relation_matrix):
 
@@ -443,15 +362,17 @@ class SimpleStableGraph:
                     self.stabileRelationMatrix[j,i]=1
 
     def _update_names(self):
+        global cfg
         cfg=load_config("./config.yml")
         self.objNames=[]
-        for i in range(1,1+self.num_obj):
-            try:
-                self.objNames.append(cfg.LABEL_MAP[str(i)])
-            except:
-                self.objNames.append(str(i))
-        self.G=nx.empty_graph(self.objNames)
-        self.pos = nx.circular_layout(self.G)
+        # for i in range(1,1+self.num_obj):
+        #     try:
+        #         self.objNames.append(cfg.LABEL_MAP[str(i)])
+        #     except:
+        #         self.objNames.append(str(i))
+        # self.G=nx.empty_graph(self.objNames)
+        # self.pos = nx.circular_layout(self.G)
+        self._getNames()
 
 
     def show(self, relation_matrix):
@@ -473,6 +394,9 @@ class SimpleStableGraph:
         nx.draw_networkx(self.G, self.pos, **self.options)
         # plt.savefig("simpleStableGraph.png")
         # cv2.imshow("Simple Stable Graph", cv2.imread("simpleStableGraph.png"))
+        # cv2.imshow("Simple Stable Graph", ssg)
+        fig.canvas.draw()
         ssg = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-        ssg  = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))        
-        cv2.imshow("Simple Stable Graph", ssg)
+        ssg  = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))   
+             
+        return ssg

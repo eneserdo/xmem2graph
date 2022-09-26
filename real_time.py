@@ -7,6 +7,8 @@ import torch
 import numpy as np
 from time import perf_counter
 import subprocess
+import glob
+
 
 sys.path.append("./XMem")
 # from inference.data.test_datasets import LongTestDataset, DAVISTestDataset, YouTubeVOSTestDataset
@@ -127,12 +129,17 @@ def main(args):
 
     rosrunner = RosRun()
     record_frames=args.record_frames
+    if record_frames:
+        files = glob.glob('/results/*')
+        if files:
+            for f in files:
+                os.remove(f)
+
     run_xmem=False
     show_blended=False
     fps=0
     timer=Timer()
     i=1
-    import glob
 
     with torch.cuda.amp.autocast(enabled=True):
 
@@ -144,6 +151,7 @@ def main(args):
                 temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
                 
                 temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+
         
         # rgb_files=sorted(glob.glob("sampleVids/zed_conf50/rgb/*.npy"))
         # depth_files=sorted(glob.glob("sampleVids/zed_conf50/depth/*.npy"))
@@ -163,6 +171,8 @@ def main(args):
             
             rgb_img=shift(temp_rgb, shift_x, shift_y)
             depth_img=shift(temp_depth, -shift_x, -shift_y)
+            
+            
             if set_mask:
                 cv2.destroyAllWindows()
                 set_mask=False
@@ -188,7 +198,7 @@ def main(args):
                 cv2.namedWindow("combined")
                 cv2.setMouseCallback('combined', print_coord)
                 cv2.createTrackbar('check_threshold','combined',600,750,nothing)
-                cv2.createTrackbar('touch_threshold','combined',25,100,nothing)
+                cv2.createTrackbar('touch_threshold','combined',26,100,nothing)
                 cv2.createTrackbar('table_threshold','combined',15,100,nothing)
                 run_xmem=True
 
@@ -219,7 +229,7 @@ def main(args):
                 print("graph time:", round(perf_counter()-start_graph, 3))
                 
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
-                visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                # visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
                 
 
                 # tableRelation._test(table_threshold, rgb_img, depth_img)
@@ -243,6 +253,7 @@ def main(args):
 
                 if record_frames:
                     cv2.imwrite(f"results/combined_{i:0>5}.png", combined)
+                    print(i)
                     i+=1
 
             else:
@@ -302,6 +313,10 @@ def main(args):
             elif key==ord('m'):
                 set_mask = True
                 mask_ready = False
+
+            elif key==ord('n'):
+                putNames(graphImage, centers, construct=[True])
+                
             
             elif key==ord('u'):
                 cfg=load_config("./config.yml")

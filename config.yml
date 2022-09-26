@@ -40,19 +40,19 @@ KINECT:
 LABEL_MAP:
   "1": "sol"
   "2": "sag"
-  "3": "sogan"
-  "4": "tahta"
-  "5": "biber"
-  "6": "kase"
-  "7": "corba"
-  "8": "tencere"
-  "9": "kasik"
-  "10": "masa"
+  "3": "kasik"
+  "4": "biber"
+  "5": "tencere"
+  "6": "bardak"
+  "7": "robot"
+  "8": "masa"
+  "9": "x"
+  "10": "a"
   "11": "b"
-  "12": "a"
+  "12": "c"
 
 GRAPHER:
-  EVERY_NTH_ELEMENT: 9
+  EVERY_NTH_ELEMENT: 8
   # SUBSAMPLING_DEGREE: 90
   # MIN_INSIDE: 40
   # SUBSET_INSIDE: 0.0015

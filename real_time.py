@@ -11,6 +11,7 @@ import subprocess
 sys.path.append("./XMem")
 # from inference.data.test_datasets import LongTestDataset, DAVISTestDataset, YouTubeVOSTestDataset
 # from inference.data.mask_mapper import MaskMapper
+
 from model.network import XMem
 from inference.inference_core import InferenceCore
 from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
@@ -94,7 +95,7 @@ def main(args):
     shift_y = args.shift_y
 
 
-    # rosrunner = RosRun()
+    rosrunner = RosRun()
     record_frames=args.record_frames
     run_xmem=False
     show_blended=False
@@ -105,24 +106,25 @@ def main(args):
 
     with torch.cuda.amp.autocast(enabled=True):
 
-        # for temp_rgb, temp_depth in rosrunner.frameGenerator():
-            # if cfg.CAMERA_NAME=="ZED":
-                # temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
-                # temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
-                # temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
-                # temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
-        
-        rgb_files=sorted(glob.glob("sampleVids/zed_conf50/rgb/*.npy"))
-        depth_files=sorted(glob.glob("sampleVids/zed_conf50/depth/*.npy"))
         counter=0
-        for rgb_path, depth_path in zip(rgb_files, depth_files):
+        for temp_rgb, temp_depth in rosrunner.frameGenerator():
+            if cfg.CAMERA_NAME=="ZED":
+                temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
+                temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
+                temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
+                
+                temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+        
+        # rgb_files=sorted(glob.glob("sampleVids/zed_conf50/rgb/*.npy"))
+        # depth_files=sorted(glob.glob("sampleVids/zed_conf50/depth/*.npy"))
+        # for rgb_path, depth_path in zip(rgb_files, depth_files):
             # temp_rgb=cv2.imread(rgb_path, -1)
             # temp_depth=cv2.imread(depth_path, -1)
             counter+=1
-            print(counter, "/", len(rgb_files))
+            # print(counter, "/", len(rgb_files))
 
-            temp_rgb=np.load(rgb_path)
-            temp_depth=np.load(depth_path)
+            # temp_rgb=np.load(rgb_path)
+            # temp_depth=np.load(depth_path)
 
             timer.start()
 
@@ -167,22 +169,6 @@ def main(args):
                 blended=getBlended(rgb_img, depth_img)
                 blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
         
-            # if record_frames:
-
-                # np.save("/home/enerd/catkin_ws/rgb_frame_kinect.npy", img1)
-                # cv2.imwrite("/home/enerd/catkin_ws/rgb_frame_kinect.png", img1)
-                # np.save("/home/enerd/catkin_ws/depth_frame_kinect.npy", img2)
-                # cv2.imwrite("/home/enerd/catkin_ws/depth_frame_kinect.png", img2)
-                # np.save("/home/enerd/catkin_ws/prediction_frame_kinect.npy", prediction)
-                # cv2.imwrite("/home/enerd/catkin_ws/prediction_frame_kinect.png", prediction)
-                # print("saved")
-                # record_frames=False
-                # raise NotImplementedError
-                # i=i+1
-                # print("Recording: True")
-                # cv2.imwrite(os.path.join(color_dir, f"color_{i:0>6}.png"), img1)
-                # cv2.imwrite(os.path.join(depth_dir, f"depth_{i:0>6}.png"), img2)
-
             
             if run_xmem:
                 frame_torch, _ = image_to_torch(rgb_img, device=device)
@@ -201,7 +187,6 @@ def main(args):
 
                 putNames(graphImage, centers)
                 print("graph time:", round(perf_counter()-start_graph, 3))
-                # graphDrawer.getTableRelations()
                 
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
                 visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
@@ -277,6 +262,7 @@ def main(args):
                 depth_img_=((2**16-1)*depth_img/(np.max(depth_img)-np.min(depth_img))).astype(np.uint16)
                 cv2.imwrite("depth_frame.png", depth_img_)
                 subprocess.run("/home/enerd/Desktop/playground/opencv/cv_test color_frame.png depth_frame.png && pcl_viewer pcl_file.pcd", shell=True)
+                
                 os.remove("./color_frame.png")
                 os.remove("./depth_frame.png")
                 os.remove("./pcl_file.pcd")
@@ -300,7 +286,7 @@ def main(args):
             
             elif key==32: # space keycode
                 key=0
-                print("press any key to continue")
+                print("press space to continue")
                 while key != 32:
                     key=cv2.waitKey(0) & 0xFF
                 
@@ -333,4 +319,3 @@ if __name__ == '__main__':
             subprocess.run("snakeviz output.prof", shell=True)
     else:
         main(args)
-        

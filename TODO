@@ -1,5 +1,5 @@
 """
-# "getMinDistBtwPoints" fonksiyonunda kd tree kullanılabilirmis
+# "getMinDistBtwPoints" fonksiyonunda kd tree kullanılabilirmis, yada optimize edilebilir başka türlü
 
 # req file küçültülebilir?
 
@@ -7,14 +7,10 @@
 rgb,depth --(python)--> mask, depth --(c++)--> pcl --(kd-tree using pcl (c++))--> uzaklık hesabı -> ilişki matrisi
 
 
-# Sqrt doğru mu? hepsinde var mı?  
-
 distance hesabı yaparken d=0 ise ihmal edilsin
 
 Ros package olarak hazırla
-Yalnızca segmented pointcoud u yayınla.
 
-graph stabilization
+rosfree branch
 
-add verbosity levels
 """

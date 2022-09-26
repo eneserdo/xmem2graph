@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 from time import perf_counter
 from easydict import EasyDict
-from math import sqrt
+from math import ceil, floor, isinf, sqrt
 import numpy as np
 import argparse
 import yaml
@@ -206,10 +206,38 @@ def argparser():
 
 
 def dictToText(d):
-    text = ""
+   
+    texts=[]
+
     for key, value in d.items():
-        text = text + str(key) + ": " + str(round(value)) + "\n"
-    return text
+        textline = ""
+
+        if isinf(value):
+            val="inf"
+        else:
+            val=str(round(value))
+
+        textline = textline + str(key) + ": " + val + "\n"
+        texts.append(textline)
+
+    return texts
+
+
+def putTwoColumnText(image, distance_dict, w1, w2):
+    texts=dictToText(distance_dict)
+    len_=len(texts)
+    max_len=11
+
+    if len_>max_len:
+        first_column="".join(texts[:max_len])
+        second_column="".join(texts[max_len:])
+        image=add_text_to_image(image, first_column, (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+        image=add_text_to_image(image, second_column, (w1+10+w2//2, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+    else:
+        first_column="".join(texts)
+        image=add_text_to_image(image, first_column, (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+
+
 
 
 def getMinMax(depth):

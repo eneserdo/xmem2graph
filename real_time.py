@@ -20,7 +20,7 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # My libs
 from ros_capture import RosRun, shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, getMinMax
+from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, getMinMax, putTwoColumnText
 from Mask import mask2orderedCenters, adaptMask
 
 import cProfile
@@ -29,10 +29,40 @@ ZOOM_COEF=1.2
 
 cfg=load_config("./config.yml")
 
-def putNames(graphImg, cntrs):
-    for id, center in cntrs.items():
+# class putNames:
+#     def __init__(self, graphImg, cntrs) -> None:
+#         self.name_centers={}
+#         for id_, center in cntrs.items():
+#             r=np.random.rand()*10+2
+#             theta=np.random.rand()*2*np.pi
+#             self.name_centers[id_]=(center.u-10+ r*np.cos(theta), center.v - 15+r*np.sin(theta))
+
+#         self.__call__(graphImg, cntrs)
+
+#     def __call__(self, graphImg, cntrs) -> None:
+#         for id_, center in cntrs.items():
+#             try:
+#                 cv2.putText(graphImg, cfg.LABEL_MAP[str(id_)], self.name_centers[id_], cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)    
+#             except:
+#                 cv2.putText(graphImg, "?", (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)   
+
+
+def putNames(graphImg, cntrs, name_centers_offset={}, construct=[True]):
+    if construct[0]:
+        for id_, center in cntrs.items():
+            r=np.random.randint(10, 80)
+            theta=np.random.rand()*(np.pi*2/3)+np.pi/6
+
+            name_centers_offset[id_]=[round(r*np.cos(theta)), round(-r*np.sin(theta))]
+
+        construct[0]=False
+
+    for id_, center in cntrs.items():
+
+        name_center=(center.u+name_centers_offset[id_][0], center.v+ name_centers_offset[id_][1])
         try:
-            cv2.putText(graphImg, cfg.LABEL_MAP[str(id)], (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)    
+            cv2.line(graphImg, (center.u, center.v), name_center, (255,60,200), 1)
+            cv2.putText(graphImg, cfg.LABEL_MAP[str(id_)], name_center, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)    
         except:
             cv2.putText(graphImg, "?", (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)    
 
@@ -152,14 +182,14 @@ def main(args):
                 prediction = torch_prob_to_numpy_mask(prediction)
                 visualization = overlay_davis(rgb_img, prediction)
 
-                cv2.namedWindow("vis")
-                cv2.imshow("vis", visualization)
+                # cv2.namedWindow("vis")
+                # cv2.imshow("vis", visualization)
 
-                cv2.namedWindow("graphImage")
-                cv2.setMouseCallback('graphImage', print_coord)
-                cv2.createTrackbar('check_threshold','graphImage',500,750,nothing)
-                cv2.createTrackbar('touch_threshold','graphImage',25,100,nothing)
-                cv2.createTrackbar('table_threshold','graphImage',15,100,nothing)
+                cv2.namedWindow("combined")
+                cv2.setMouseCallback('combined', print_coord)
+                cv2.createTrackbar('check_threshold','combined',600,750,nothing)
+                cv2.createTrackbar('touch_threshold','combined',25,100,nothing)
+                cv2.createTrackbar('table_threshold','combined',15,100,nothing)
                 run_xmem=True
 
                 tableRelation=TableRelation(rgb_img, depth_img, num_objects, use_existing=args.table_points_ready)
@@ -176,9 +206,9 @@ def main(args):
                 prediction = torch_prob_to_numpy_mask(prediction)
                 centers=mask2orderedCenters(prediction, depth_img)
                 # print("Centers:", centers)
-                check_threshold = cv2.getTrackbarPos('check_threshold','graphImage')
-                touch_threshold = cv2.getTrackbarPos('touch_threshold','graphImage')
-                table_threshold = cv2.getTrackbarPos('table_threshold','graphImage')
+                check_threshold = cv2.getTrackbarPos('check_threshold','combined')
+                touch_threshold = cv2.getTrackbarPos('touch_threshold','combined')
+                table_threshold = cv2.getTrackbarPos('table_threshold','combined')
  
                 start_graph=perf_counter()
                 graphImage, distance_dict, ssg=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img)
@@ -204,9 +234,11 @@ def main(args):
                 
                 combined[:h1, :w1]=visualization
                 combined[h1:, :w1]=graphImage
-                combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
+                # combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
+                combined[2*h1-h2:, w1:]=ssg
+                putTwoColumnText(combined, distance_dict, w1, w2)
 
-                combined=add_text_to_image(combined, dictToText(distance_dict), (w1+10, 10), 0.6, font_color_rgb=(255,255,255), bg_color_rgb=(0, 0, 0))
+
                 cv2.imshow("combined", combined)
 
                 if record_frames:

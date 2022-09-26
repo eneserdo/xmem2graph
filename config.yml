@@ -25,28 +25,46 @@ KINECT:
   # RGB_TOPIC:
 
 
+# LABEL_MAP:
+#   "1": "sogan"
+#   "2": "tahta"
+#   "3": "biber"
+#   "4": "kase"
+#   "5": "corba"
+#   "6": "kasik"
+#   "7": "tencere"
+#   "8": "bicak"
+#   "9": "masa"
+#   "10": "?"
+
 LABEL_MAP:
-  "1": "left"
-  "2": "right"
-  "3": "spoon"
-  "4": "pan"
-  "5": "balls"
-  "6": "table"
+  "1": "sol"
+  "2": "sag"
+  "3": "sogan"
+  "4": "tahta"
+  "5": "biber"
+  "6": "kase"
+  "7": "corba"
+  "8": "tencere"
+  "9": "kasik"
+  "10": "masa"
+  "11": "b"
+  "12": "a"
 
 GRAPHER:
-  EVERY_NTH_ELEMENT: 10
-  SUBSAMPLING_DEGREE: 90
-  MIN_INSIDE: 40
-  SUBSET_INSIDE: 0.0015
+  EVERY_NTH_ELEMENT: 9
+  # SUBSAMPLING_DEGREE: 90
+  # MIN_INSIDE: 40
+  # SUBSET_INSIDE: 0.0015
 
 
 SIMPLEGRAPH:
-  QUEUE_LENGTH: 9
-  MIN_VISIBILITY: 6
+  QUEUE_LENGTH: 8
+  MIN_VISIBILITY: 5
 
 VISIBLE:
-  CENTER_COORDS: True
-  PCL: FALSE
+  CENTER_COORDS: False
+  PCL: False
   MASK: True
   MIN_DIST: False
   SEGMENTATION: True

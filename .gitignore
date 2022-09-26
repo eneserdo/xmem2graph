@@ -12,6 +12,7 @@ sampleVids/
 *.png
 *.npy
 final_result/
+results/
 output_time.txt
 output_calls.txt
 output.dat

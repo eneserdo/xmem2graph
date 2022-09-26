@@ -218,7 +218,7 @@ class GraphDrawer:
             # graphImage=cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
             # graphImage[(graphImage>0).all(-1)] = [204, 51, 51]
 
-            graphImage = cv2.applyColorMap(mask*(240//self.num_obj)+15, cv2.COLORMAP_OCEAN)
+            graphImage = cv2.applyColorMap(mask*(240//self.num_obj)+15, cv2.COLORMAP_VIRIDIS) # OCEAN , COLORMAP_VIRIDIS
         else:
             graphImage = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
 
@@ -314,12 +314,12 @@ class SimpleStableGraph:
 
         self.num_obj=num_obj
         self.options = {
-            "font_size": 14,
-            "node_size": 2100,
+            "font_size": 9,
+            "node_size": 1500,
             "node_color": "white",
             "edgecolors": "black",
-            "linewidths": 2,
-            "width": 2,
+            "linewidths": 1.4,
+            "width": 1.4,
         }
         
         self.objNames=[]
@@ -397,6 +397,8 @@ class SimpleStableGraph:
         # cv2.imshow("Simple Stable Graph", ssg)
         fig.canvas.draw()
         ssg = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-        ssg  = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))   
+        ssg = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        trim_coef=70
+        ssg = cv2.resize(ssg[trim_coef:-trim_coef, trim_coef:-trim_coef], (ssg.shape[1], ssg.shape[0]))
              
         return ssg

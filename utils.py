@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 import yaml
 import cv2
+import os
 
 
 def load_config(config_path):
@@ -70,10 +71,15 @@ def convert_from_uvd(u, v, d):
     # z = d / np.sqrt(1. + x_over_z**2 + y_over_z**2)
     # x = x_over_z * z
     # y = y_over_z * z
+    
+    # z = d * scale
+    # x = (u - cx) * z / f
+    # y = (v - cy) * z / f
 
-    z = d * scale
-    x = (u - cx) * z / f
-    y = (v - cy) * z / f
+    d_= d * scale
+    x = (u - cx) * d_ / f
+    y = - (v - cy) * d_ / f
+    z = - d_
 
     return x, y, z
 
@@ -145,6 +151,33 @@ def arrayAndDepthToCoord(array, depth_map):
         coord_arr.append(Coord(a.item(1), a.item(0), depth_map.item((a[0], a[1]))))
 
     return coord_arr
+
+def record_hand_centers(all_centers):
+
+    pass
+    # left_id=[i for i, v in enumerate(cfg.LABEL_MAP) if v=="left"][0]
+    # right_id=[i for i, v in enumerate(cfg.LABEL_MAP) if v=="right"][0]
+
+    # left_center=all_centers[left_id]
+    # right_center=all_centers[right_id]
+    
+    # right_file="right.txt"
+    # left_file="left.txt"
+
+    # if not os.path.isfile(right_file):
+    #     with open(right_file, "a") as f:
+    #         f.write("x y z" + "\n")
+
+    # if not os.path.isfile(left_file):
+    #     with open(left_file, "a") as f:
+    #         f.write("x y z" + "\n")
+
+    # with open(right_file, "a") as f:
+    #     f.write(f"{right_center[0]} {right_center[1]} {right_center[2]}" + "\n")
+
+    # with open(left_file, "a") as f:
+    #     f.write(f"{left_center[0]} {left_center[1]} {left_center[2]}" + "\n")
+
 
 
 def almost_equal(a, b, eps=1e-5):

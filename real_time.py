@@ -27,7 +27,7 @@ from Mask import mask2orderedCenters, adaptMask
 
 import cProfile
 
-ZOOM_COEF=1.2
+# ZOOM_COEF=1.2
 
 cfg=load_config("./config.yml")
 
@@ -73,8 +73,8 @@ prev_coord=None
 def print_coord(event,x,y, flags, param):
     global prev_coord
     if event == cv2.EVENT_LBUTTONDOWN:
-        x=x/ZOOM_COEF
-        y=y/ZOOM_COEF
+        # x=x/ZOOM_COEF
+        # y=y/ZOOM_COEF
         print(round(x),round(y))
         x1,y1,z1=convert_from_uvd(x, y, depth_img.item((int(y),int(x))))
         print(f"({round(x1, 2)}, {round(y1, 2)}, {round(z1, 2)})")	
@@ -144,33 +144,41 @@ def main(args):
     with torch.cuda.amp.autocast(enabled=True):
 
         counter=0
-        for temp_rgb, temp_depth in rosrunner.frameGenerator():
-            if cfg.CAMERA_NAME=="ZED":
-                temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
-                temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
-                temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
-                
-                temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
 
-        
-        # rgb_files=sorted(glob.glob("sampleVids/zed_conf50/rgb/*.npy"))
-        # depth_files=sorted(glob.glob("sampleVids/zed_conf50/depth/*.npy"))
-        # for rgb_path, depth_path in zip(rgb_files, depth_files):
-            # temp_rgb=cv2.imread(rgb_path, -1)
+        #   FOR ROS BAGS
+        # for temp_rgb, temp_depth in rosrunner.frameGenerator():
+        #     if cfg.CAMERA_NAME=="ZED":
+        #         temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
+        #         temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
+        #         temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
+                
+        #         temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+
+        # FOR IMAGE FOLDERS
+        rgb_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp2_all/rgb/*.png"))
+        depth_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp2_all/depth/*.npy"))
+        for rgb_path, depth_path in zip(rgb_files, depth_files):
+            temp_rgb=cv2.imread(rgb_path, -1)
+            temp_rgb=cv2.resize(temp_rgb, (640, 360))
+
             # temp_depth=cv2.imread(depth_path, -1)
             counter+=1
-            # print(counter, "/", len(rgb_files))
+            print(counter, "/", len(rgb_files))
 
             # temp_rgb=np.load(rgb_path)
-            # temp_depth=np.load(depth_path)
+            temp_depth=np.load(depth_path)
 
             timer.start()
 
             if temp_rgb is None:
                 break
             
-            rgb_img=shift(temp_rgb, shift_x, shift_y)
-            depth_img=shift(temp_depth, -shift_x, -shift_y)
+            if shift_x!=0 or shift_x!=0:
+                rgb_img=shift(temp_rgb, shift_x, shift_y)
+                depth_img=shift(temp_depth, -shift_x, -shift_y)
+            else:
+                rgb_img=temp_rgb
+                depth_img=temp_depth
             
             
             if set_mask:

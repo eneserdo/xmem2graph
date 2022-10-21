@@ -88,6 +88,7 @@ def getBlended(img1, img2):
     return im2+im1
 
 def shift(img, ox, oy):
+    print(f"Image shift: {ox}, {oy}")
     non = lambda s: s if s<0 else None
     mom = lambda s: max(0,s)
 

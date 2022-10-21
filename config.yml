@@ -25,18 +25,6 @@ KINECT:
   # RGB_TOPIC:
 
 
-# LABEL_MAP:
-#   "1": "sogan"
-#   "2": "tahta"
-#   "3": "biber"
-#   "4": "kase"
-#   "5": "corba"
-#   "6": "kasik"
-#   "7": "tencere"
-#   "8": "bicak"
-#   "9": "masa"
-#   "10": "?"
-
 LABEL_MAP:
   "1": "left"
   "2": "right"

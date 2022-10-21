@@ -109,11 +109,7 @@ def main(args):
         'max_mid_term_frames': 10,
         'max_long_term_elements': 10000,
     }
-
-
-    assert torch.cuda.is_available()
     device="cuda"
-
 
     print("CUDA version: ",torch.version.cuda)
     network = XMem(config, './XMem/saves/XMem.pth').eval().to(device)
@@ -352,11 +348,18 @@ def main(args):
 
 
 if __name__ == '__main__':
+    args=argparser()
+    
+    # Global variables for some reason
     depth_img=None
     tableRelation=None
-    args=argparser()
 
-    assert not ((args.set_mask is True) and (args.mask_ready is True))
+    if args.no_table:
+        raise NotImplementedError
+
+    assert torch.cuda.is_available()
+    assert not (args.set_mask and args.mask_ready)
+    assert not (args.no_table and args.table_points_ready)
     
     if args.profile:
         try:

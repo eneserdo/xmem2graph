@@ -207,6 +207,10 @@ def argparser():
     )
 
     ap.add_argument(
+        "-nt", "--no_table", action="store_true", help="to disable table"
+    )
+
+    ap.add_argument(
         "-tpr",
         "--table_points_ready",
         action="store_true",

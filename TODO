@@ -13,4 +13,6 @@ Ros package olarak hazırla
 
 rosfree branch
 
+load_config e herseferinde gerek yok zaten importlayınca geliyor olmalı
+
 """

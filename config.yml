@@ -26,11 +26,11 @@ KINECT:
 
 
 LABEL_MAP:
-  "1": "left"
-  "2": "right"
-  "3": "kasik"
-  "4": "biber"
-  "5": "tencere"
+  "1": "LeftHand"
+  "2": "RightHand"
+  "3": "bowl"
+  "4": "knife"
+  "5": "table"
   "6": "bardak"
   "7": "robot"
   "8": "masa"

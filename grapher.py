@@ -1,4 +1,3 @@
-from importlib.resources import path
 import json
 from os import makedirs, mkdir, path
 import cv2
@@ -409,45 +408,3 @@ class SimpleStableGraph:
         return ssg
 
 
-def get3dDict(class_index, class_name, instance_name):
-    temp={"bounding_box": { "x0": 0, "x1": 0, "y0": 0, "y1": 0, "z0": 0, "z1": 0},
-          "certainty": 1,
-          "class_index": class_index,
-          "class_name": class_name,
-          "colour": [0,0,0],
-          "instance_name": instance_name,
-          "past_bounding_box": { "x0": 0, "x1": 0, "y0": 0, "y1": 0, "z0": 0, "z1": 0}}
-
-    return temp
-    
-
-def getRelationDict(oi, si):
-    return {'object_index': oi, 'relation_name': 'contact', 'subject_index': si}
-
-def writeForBimacs(relationMatrix, folder_name, frame_number):
-    
-    relationDict=[]
-    d3Dict=[]
-    num_obj=relationMatrix.shape[0]
-
-    for i in range(num_obj):
-        for j in range(num_obj):
-            if relationMatrix[i,j]==1:
-                # relationDict.append(getRelationDict())
-                pass
-                
-
-    spatialRelation=path.join(folder_name, "spatial_relations")
-    d3_objects=path.join(folder_name, "3d_objects")
-
-    if frame_number==0:
-        mkdir(spatialRelation)
-        mkdir(d3_objects)
-    
-    with open(path.join(spatialRelation, f"frame_{frame_number}.json"), 'w') as outfile:
-        json.dump(relationDict, outfile, indent=4)
-
-    with open(path.join(d3_objects, f"frame_{frame_number}.json"), 'w') as outfile:
-        json.dump(d3Dict, outfile, indent=4)
-    
-    

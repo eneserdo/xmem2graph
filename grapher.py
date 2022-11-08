@@ -6,9 +6,12 @@ import networkx as nx
 from math import sqrt
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
-from time import perf_counter
+
+
 from utils import convert_from_uvd, Coord, almost_equal, load_config
 from Mask import mask2BoundaryPoints,  mask2BoundaryPoints, getAvrMinDistBtwPoints, getMinDistBtwPoints
+from bimacs_recording import writeForBimacs
+
 
 cfg=load_config("./config.yml")
 
@@ -324,6 +327,8 @@ class SimpleStableGraph:
             "width": 1.4,
         }
         
+        self.frame_num=0
+
         self.objNames=[]
         self.listOfRelationMatrix=[]
         self._getNames()
@@ -332,7 +337,7 @@ class SimpleStableGraph:
         global cfg
         for i in range(1,1+self.num_obj):
             try:
-                self.objNames.append(cfg.LABEL_MAP[str(i)])
+                self.objNames.append(cfg.LABEL_MAP[str(i)]+"_"+str(i))
             except:
                 self.objNames.append(str(i))
 
@@ -390,6 +395,9 @@ class SimpleStableGraph:
 
         print(self.stabileRelationMatrix)
 
+        writeForBimacs(self.stabileRelationMatrix, "exp7_graphs", self.frame_num)
+        
+
         for i in range(self.num_obj):
             for j in range(self.num_obj):
                 if self.stabileRelationMatrix[i,j]==1:
@@ -404,6 +412,12 @@ class SimpleStableGraph:
         ssg = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         trim_coef=70
         ssg = cv2.resize(ssg[trim_coef:-trim_coef, trim_coef:-trim_coef], (ssg.shape[1], ssg.shape[0]))
+
+        # makedirs(path.join("exp3_graphs", "graph_imgs"), exist_ok=True)
+        # cv2.imwrite(path.join("exp3_graphs", "graph_imgs", f"graph_{self.frame_num}.png"), ssg)
+
+
+        self.frame_num+=1
              
         return ssg
 

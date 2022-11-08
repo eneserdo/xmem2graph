@@ -5,7 +5,7 @@ import torch
 # import torch.nn.functional as F
 # from torch.utils.data import DataLoader
 import numpy as np
-from time import perf_counter
+from time import perf_counter, localtime, time
 import subprocess
 import glob
 
@@ -130,10 +130,13 @@ def main(args):
     rosrunner = RosRun()
     record_frames=args.record_frames
     if record_frames:
-        files = glob.glob('/results/*')
-        if files:
-            for f in files:
-                os.remove(f)
+        current_time=localtime(time())
+        fname=os.path.join(args.output_folder, "results", f"{current_time.tm_mon}-{current_time.tm_mday}-{current_time.tm_hour}-{current_time.tm_min}")
+        os.makedirs(fname)
+        # files = glob.glob('/results/*')
+        # if files:
+        #     for f in files:
+        #         os.remove(f)
 
     run_xmem=False
     show_blended=False
@@ -155,8 +158,8 @@ def main(args):
         #         temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
 
         # FOR IMAGE FOLDERS
-        rgb_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp2_all/rgb/*.png"))
-        depth_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp2_all/depth/*.npy"))
+        rgb_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp7_all/rgb/*.png"))
+        depth_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp7_all/depth/*.npy"))
         for rgb_path, depth_path in zip(rgb_files, depth_files):
             temp_rgb=cv2.imread(rgb_path, -1)
             temp_rgb=cv2.resize(temp_rgb, (640, 360))
@@ -259,7 +262,7 @@ def main(args):
                 cv2.imshow("combined", combined)
 
                 if record_frames:
-                    cv2.imwrite(f"results/combined_{i:0>5}.png", combined)
+                    cv2.imwrite(os.path.join(fname, f"combined_{i:0>5}.png"), combined)
                     print(i)
                     i+=1
 
@@ -313,9 +316,12 @@ def main(args):
                 cv2.imwrite("depth_frame.png", depth_img_)
                 subprocess.run("/home/enerd/Desktop/playground/opencv/cv_test color_frame.png depth_frame.png && pcl_viewer pcl_file.pcd", shell=True)
                 
-                os.remove("./color_frame.png")
-                os.remove("./depth_frame.png")
-                os.remove("./pcl_file.pcd")
+                try:
+                    os.remove("./color_frame.png")
+                    os.remove("./depth_frame.png")
+                    os.remove("./pcl_file.pcd")
+                except:
+                    pass
 
             elif key==ord('m'):
                 set_mask = True

@@ -220,6 +220,7 @@ def argparser():
     ap.add_argument("-p", "--profile", action="store_true", help="run with cProfile")
 
     ap.add_argument("-r", "--record_frames", action="store_true", help="record")
+    ap.add_argument("-o", "--output_folder", default=".",    help="output folder")
 
     ap.add_argument(
         "-mn", "--mask_name", default="mask.png", help="to load already existing mask"

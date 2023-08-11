@@ -8,6 +8,8 @@ import numpy as np
 from time import perf_counter, localtime, time
 import subprocess
 import glob
+from datetime import datetime
+import random
 
 
 sys.path.append("./XMem")
@@ -31,29 +33,15 @@ import cProfile
 
 cfg=load_config("./config.yml")
 
-# class putNames:
-#     def __init__(self, graphImg, cntrs) -> None:
-#         self.name_centers={}
-#         for id_, center in cntrs.items():
-#             r=np.random.rand()*10+2
-#             theta=np.random.rand()*2*np.pi
-#             self.name_centers[id_]=(center.u-10+ r*np.cos(theta), center.v - 15+r*np.sin(theta))
-
-#         self.__call__(graphImg, cntrs)
-
-#     def __call__(self, graphImg, cntrs) -> None:
-#         for id_, center in cntrs.items():
-#             try:
-#                 cv2.putText(graphImg, cfg.LABEL_MAP[str(id_)], self.name_centers[id_], cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)    
-#             except:
-#                 cv2.putText(graphImg, "?", (center.u - 10, center.v - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,60,200), 1)   
-
 
 def putNames(graphImg, cntrs, name_centers_offset={}, construct=[True]):
     if construct[0]:
         for id_, center in cntrs.items():
-            r=np.random.randint(10, 80)
+            r=np.random.randint(20, 90)
+            minus_or_plus=random.choice([1, -1])
             theta=np.random.rand()*(np.pi*2/3)+np.pi/6
+
+            theta *= minus_or_plus
 
             name_centers_offset[id_]=[round(r*np.cos(theta)), round(-r*np.sin(theta))]
 
@@ -129,9 +117,10 @@ def main(args):
 
     rosrunner = RosRun()
     record_frames=args.record_frames
+    current_time=datetime.now()
+    fname=os.path.join("results", args.output_folder+"-"+ current_time.strftime("%m-%d-%Y, %H-%M-%S"))
+    
     if record_frames:
-        current_time=localtime(time())
-        fname=os.path.join(args.output_folder, "results", f"{current_time.tm_mon}-{current_time.tm_mday}-{current_time.tm_hour}-{current_time.tm_min}")
         os.makedirs(fname)
         # files = glob.glob('/results/*')
         # if files:
@@ -148,7 +137,7 @@ def main(args):
 
         counter=0
 
-        #   FOR ROS BAGS
+        # FOR ROS BAGS
         # for temp_rgb, temp_depth in rosrunner.frameGenerator():
         #     if cfg.CAMERA_NAME=="ZED":
         #         temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
@@ -158,8 +147,11 @@ def main(args):
         #         temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
 
         # FOR IMAGE FOLDERS
-        rgb_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp7_all/rgb/*.png"))
-        depth_files=sorted(glob.glob("/home/enerd/robot_exp_hand/exp7_all/depth/*.npy"))
+        rgb_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/rgb/*.png"))
+        depth_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/depth/*.npy"))
+        # rgb_files=sorted(glob.glob("rosdata/aralik_stir/rgb/*.png"))
+        # depth_files=sorted(glob.glob("rosdata/aralik_stir/depth/*.npy"))
+
         for rgb_path, depth_path in zip(rgb_files, depth_files):
             temp_rgb=cv2.imread(rgb_path, -1)
             temp_rgb=cv2.resize(temp_rgb, (640, 360))
@@ -208,12 +200,12 @@ def main(args):
                 cv2.namedWindow("combined")
                 cv2.setMouseCallback('combined', print_coord)
                 cv2.createTrackbar('check_threshold','combined',600,750,nothing)
-                cv2.createTrackbar('touch_threshold','combined',26,100,nothing)
+                cv2.createTrackbar('touch_threshold','combined',24,100,nothing)
                 cv2.createTrackbar('table_threshold','combined',15,100,nothing)
                 run_xmem=True
 
                 tableRelation=TableRelation(rgb_img, depth_img, num_objects, use_existing=args.table_points_ready)
-                graphDrawer=GraphDrawer(num_obj=num_objects, beta=0.95, tr=tableRelation)
+                graphDrawer=GraphDrawer(num_obj=num_objects, fname=fname, beta=0.95, tr=tableRelation, record=args.record_frames)
             
             if show_blended:
                 blended=getBlended(rgb_img, depth_img)

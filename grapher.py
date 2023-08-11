@@ -1,5 +1,6 @@
 import json
 from os import makedirs, mkdir, path
+import os
 import cv2
 import numpy as np
 import networkx as nx
@@ -71,6 +72,8 @@ class TableRelation:
 
 
     def _selectPoints(self, img_point_select, depth):
+        img_point_select= np.ascontiguousarray(img_point_select.copy(), dtype=np.uint8)
+        
         ### inner func: start ###
         def click_event(event, x, y, flags, params):
             if event == cv2.EVENT_LBUTTONDOWN:
@@ -90,7 +93,10 @@ class TableRelation:
         self.table_points=np.array([])
         cv2.imshow("Choose points on table", img_point_select)
 
+        
         cv2.setMouseCallback('Choose points on table', click_event)
+
+        print("#"*10, "\n", img_point_select.dtype, img_point_select.shape)
 
         cv2.waitKey(0)
         self.table_points=self.table_points.reshape(-1, 3)
@@ -116,7 +122,7 @@ class GraphDrawer:
         Transforms semantic segmented image masks to graphs on image
     """
 
-    def __init__(self, num_obj, beta=0.95, tr=None):
+    def __init__(self, num_obj, fname, beta=0.95, tr=None, record=False):
 
 
         assert (beta > 0.8) and (beta <=1.0)
@@ -125,8 +131,9 @@ class GraphDrawer:
         self.num_obj = num_obj
         self.beta = beta
         self.relation_matrix=None
+        self.record=record
 
-        self.simpleGraph=SimpleStableGraph(num_obj+1) # +1 is table
+        self.simpleGraph=SimpleStableGraph(num_obj+1, fname, self.record) # +1 is table
         
         if tr is None:
             raise ValueError
@@ -315,8 +322,9 @@ class GraphDrawer:
 
 
 class SimpleStableGraph:
-    def __init__(self, num_obj) -> None:
+    def __init__(self, num_obj, fname, record) -> None:
 
+        self.record=record
         self.num_obj=num_obj
         self.options = {
             "font_size": 9,
@@ -328,7 +336,7 @@ class SimpleStableGraph:
         }
         
         self.frame_num=0
-
+        self.fname=fname
         self.objNames=[]
         self.listOfRelationMatrix=[]
         self._getNames()
@@ -348,7 +356,6 @@ class SimpleStableGraph:
 
     def _stable(self, relation_matrix):
 
-        
         self.stabileRelationMatrix=np.zeros((self.num_obj, self.num_obj))
         
         # queue with lenght N
@@ -368,6 +375,28 @@ class SimpleStableGraph:
                     self.stabileRelationMatrix[i,j]=1
                     self.stabileRelationMatrix[j,i]=1
 
+    def _knifeAdjustment(self):
+        # if knife not contact with table THEN ASSUME THAT it contact with RIGHT hand and thing which it touches
+        # might change it to: table to hand, hand to table ???
+        
+        for k, v in cfg.LABEL_MAP.items():
+            if v=="knife":
+                knife_index=int(k)-1
+            elif v=="RightHand":
+                rightHand_index=int(k)-1
+            elif v=="table":
+                table_index=int(k)-1
+
+        if self.stabileRelationMatrix[table_index, knife_index]==0: 
+
+            self.stabileRelationMatrix[knife_index, :]= self.stabileRelationMatrix[rightHand_index, :]
+            self.stabileRelationMatrix[:, knife_index]= self.stabileRelationMatrix[:, rightHand_index]
+
+            self.stabileRelationMatrix[rightHand_index, knife_index]=1
+            self.stabileRelationMatrix[knife_index, rightHand_index]=1
+
+
+
     def _update_names(self):
         global cfg
         cfg=load_config("./config.yml")
@@ -385,6 +414,7 @@ class SimpleStableGraph:
     def show(self, relation_matrix):
 
         self._stable(relation_matrix)
+        # self._knifeAdjustment()
 
         self.G.remove_edges_from(list(self.G.edges()))
         fig = plt.figure()
@@ -393,9 +423,10 @@ class SimpleStableGraph:
         axis = fig.gca()
         axis.margins(0.20)
 
-        print(self.stabileRelationMatrix)
+        # print(self.stabileRelationMatrix)
 
-        writeForBimacs(self.stabileRelationMatrix, "exp7_graphs", self.frame_num)
+        if self.record:
+            writeForBimacs(self.stabileRelationMatrix, self.fname, self.frame_num)
         
 
         for i in range(self.num_obj):
@@ -412,7 +443,7 @@ class SimpleStableGraph:
         ssg = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         trim_coef=70
         ssg = cv2.resize(ssg[trim_coef:-trim_coef, trim_coef:-trim_coef], (ssg.shape[1], ssg.shape[0]))
-
+        plt.close()
         # makedirs(path.join("exp3_graphs", "graph_imgs"), exist_ok=True)
         # cv2.imwrite(path.join("exp3_graphs", "graph_imgs", f"graph_{self.frame_num}.png"), ssg)
 

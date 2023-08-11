@@ -152,3 +152,17 @@ def test_func():
     print(rel)
 
     writeForBimacs(rel, "samplef", 0)
+
+
+# class oneD_recording:
+#     def __init__(self) -> None:
+
+#         pass
+
+#     def add_matrix(self, relationMatrix):
+
+
+#         # assume that last element is "table" always
+#         relationMatrix = relationMatrix[:-1, :-1]
+#         object_name = cfg.LABEL_MAP[str(obj_i + 1)]
+        

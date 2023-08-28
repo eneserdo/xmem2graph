@@ -223,7 +223,7 @@ def main(args):
                 table_threshold = cv2.getTrackbarPos('table_threshold','combined')
  
                 start_graph=perf_counter()
-                graphImage, distance_dict, ssg=graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img)
+                graphImage, distance_dict, ssg = graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img)
                 
                 # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, touch_threshold)
 

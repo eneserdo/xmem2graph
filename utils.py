@@ -19,16 +19,16 @@ def load_config(config_path):
 cfg = load_config("./config.yml")
 
 if cfg.CAMERA_NAME == "ZED":
-    cx = cfg.ZED.cx
-    cy = cfg.ZED.cy
-    f = cfg.ZED.f
-    scale = cfg.ZED.SCALE
+    CX = cfg.ZED.cx
+    CY = cfg.ZED.cy
+    F = cfg.ZED.f
+    SCALE = cfg.ZED.SCALE
 
 elif cfg.CAMERA_NAME == "KINECT":
-    cx = cfg.KINECT.cx
-    cy = cfg.KINECT.cy
-    f = cfg.KINECT.f
-    scale = cfg.KINECT.SCALE
+    CX = cfg.KINECT.cx
+    CY = cfg.KINECT.cy
+    F = cfg.KINECT.f
+    SCALE = cfg.KINECT.SCALE
 
 
 class Timer:
@@ -76,9 +76,9 @@ def convert_from_uvd(u, v, d):
     # x = (u - cx) * z / f
     # y = (v - cy) * z / f
 
-    d_= d * scale
-    x = (u - cx) * d_ / f
-    y = - (v - cy) * d_ / f
+    d_= d * SCALE
+    x = (u - CX) * d_ / F
+    y = - (v - CY) * d_ / F
     z = - d_
 
     return x, y, z
@@ -404,3 +404,8 @@ def add_text_to_image(
         top_left_xy = (x, y + int(line_height * line_spacing))
 
     return image_rgb
+
+
+def get_bboxed_image(bbox_list):
+    # TODO remap the bounding box onto the original image
+    ...

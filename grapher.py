@@ -253,8 +253,8 @@ class GraphDrawer:
             tempDist=self.tableRelation.getMinDistFromTable(self.pcl_dict[id_])
             
             if table_threshold>tempDist:
-                self.relation_matrix[id_-1, -1]=1
-                self.relation_matrix[-1, id_-1]=1
+                self.relation_matrix[id_-1, -1] = 1
+                self.relation_matrix[-1, id_-1] = 1
                 distance_dict[cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist
             else:
                 distance_dict["*"+cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist

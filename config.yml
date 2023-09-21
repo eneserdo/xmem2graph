@@ -56,4 +56,11 @@ VISIBLE:
   MASK: True
   MIN_DIST: False
   SEGMENTATION: True
+  BBOX: True
+
+
+# This should be in camera config
+IMG:
+  HEIGHT: 480
+  WIDTH: 640
   

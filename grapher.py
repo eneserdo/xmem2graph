@@ -5,11 +5,12 @@ import cv2
 import numpy as np
 import networkx as nx
 from math import sqrt
+from relations import RELATION_LIST, get_pcl_to_bbox, get_relation_matrix
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 
 
-from utils import convert_from_uvd, Coord, almost_equal, load_config
+from utils import convert_from_uvd, Coord, almost_equal, get_bboxed_image, load_config
 from Mask import mask2BoundaryPoints,  mask2BoundaryPoints, getAvrMinDistBtwPoints, getMinDistBtwPoints
 from bimacs_recording import writeForBimacs
 
@@ -122,7 +123,7 @@ class GraphDrawer:
         Transforms semantic segmented image masks to graphs on image
     """
 
-    def __init__(self, num_obj, fname, beta=0.95, tr=None, record=False):
+    def __init__(self, num_obj, fname, beta=0.95):
 
 
         assert (beta > 0.8) and (beta <=1.0)
@@ -131,13 +132,15 @@ class GraphDrawer:
         self.num_obj = num_obj
         self.beta = beta
         self.relation_matrix=None
-        self.record=record
+        # self.record=record
 
-        self.simpleGraph=SimpleStableGraph(num_obj+1, fname, self.record) # +1 is table
+        self.simpleGraph=SimpleStableGraph(num_obj)
         
-        if tr is None:
-            raise ValueError
-        self.tableRelation=tr
+        # if tr is None:
+        #     raise ValueError
+        # self.tableRelation=tr
+
+        self.past_bounding_boxes = None
 
 
     def _impute_and_push(self, curr_center: dict):
@@ -182,9 +185,10 @@ class GraphDrawer:
  
     @staticmethod
     def _getPCL(graphImage: np.ndarray, object_mask: np.ndarray, depth_img: np.ndarray):
-        allPoints=mask2BoundaryPoints(object_mask,depth_img, addCenterToBoundary=True) #+ mask2InnerPoints(object_mask,depth_img)
+        allPoints=mask2BoundaryPoints(object_mask, depth_img) #+ mask2InnerPoints(object_mask,depth_img)
 
-        filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
+        filtered_allPoints = allPoints
+        # filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
 
         if cfg.VISIBLE.PCL:
             for p in filtered_allPoints:
@@ -214,7 +218,7 @@ class GraphDrawer:
         img_test = cv2.resize(img_test, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
         cv2.imshow("img_test", img_test)
         
-    def getGraph(self, curr_centers: dict, mask, check_threshold, touch_threshold, table_threshold, depth):
+    def getGraph(self, rgb_image, curr_centers: dict, mask, distance_equality_threshold, visible_relation_id, depth):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
         
         # assert touch_threshold < check_threshold
@@ -225,6 +229,7 @@ class GraphDrawer:
         centers = curr_centers
 
         obj_ids = centers.keys()
+        print("obj_ids:", obj_ids)
 
         if cfg.VISIBLE.SEGMENTATION:
             # graphImage=cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
@@ -236,10 +241,10 @@ class GraphDrawer:
 
 
         # Number_of_object + table
-        self.relation_matrix=np.zeros((self.num_obj+1, self.num_obj+1))
+        # self.relation_matrix=np.zeros((self.num_obj+1, self.num_obj+1))
         
         # Record all relevant distances
-        distance_dict={}
+        # distance_dict={}
 
         # Create pcl for all of them, and form table-object relations
         self.pcl_dict={}
@@ -247,65 +252,83 @@ class GraphDrawer:
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
             self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth)
-            avrNumPoints+=len(self.pcl_dict[id_])
+            avrNumPoints+=self.pcl_dict[id_].shape[0]
 
             # Also calculate the distance to table
-            tempDist=self.tableRelation.getMinDistFromTable(self.pcl_dict[id_])
+            # tempDist=self.tableRelation.getMinDistFromTable(self.pcl_dict[id_])
             
-            if table_threshold>tempDist:
-                self.relation_matrix[id_-1, -1] = 1
-                self.relation_matrix[-1, id_-1] = 1
-                distance_dict[cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist
-            else:
-                distance_dict["*"+cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist
+            # if table_threshold>tempDist:
+            #     self.relation_matrix[id_-1, -1] = 1
+            #     self.relation_matrix[-1, id_-1] = 1
+            #     distance_dict[cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist
+            # else:
+            #     distance_dict["*"+cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist
 
         print("Average selected points: ", avrNumPoints/len(self.pcl_dict))
 
+        
+        # NEW
+        bounding_boxes = get_pcl_to_bbox(self.pcl_dict, self.num_obj)
+
+        # Visualize bounding boxes
+        if cfg.VISIBLE.BBOX:
+            get_bboxed_image(rgb_image, bounding_boxes)
+        
+
+        # get relations between objects
+        if isinstance(self.past_bounding_boxes, type(None)):
+            self.past_bounding_boxes = bounding_boxes
+
+        relation_matrix, distance_matrix = get_relation_matrix(bounding_boxes, self.past_bounding_boxes, 0.0)
+
+        # update past bounding boxes
+        self.past_bounding_boxes = bounding_boxes
+
         # In the future to implement multiprocessing, we need to modify following
-        for first_id in obj_ids:
-            first_center = centers[first_id]
+        # for first_id in obj_ids:
+        #     first_center = centers[first_id]
 
-            for second_id in obj_ids:
-                second_center = centers[second_id]
+        #     for second_id in obj_ids:
+        #         second_center = centers[second_id]
 
-                if second_id <= first_id:
-                    continue
+        #         if second_id <= first_id:
+        #             continue
 
-                center2centerDistance = round(first_center.realDistanceTo(second_center), 1)
+        #         center2centerDistance = round(first_center.realDistanceTo(second_center), 1)
 
-                # touch_threshold < check_threshold
-                # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
-                if touch_threshold > center2centerDistance:
-                    self.relation_matrix[first_id-1, second_id-1]=1
-                    self.relation_matrix[second_id-1, first_id-1]=1
+        #         # touch_threshold < check_threshold
+        #         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
+        #         if touch_threshold > center2centerDistance:
+        #             self.relation_matrix[first_id-1, second_id-1]=1
+        #             self.relation_matrix[second_id-1, first_id-1]=1
 
-                    cv2.line(graphImage, (first_center.u, first_center.v),(second_center.u, second_center.v), (20, 100, 90), 3)
+        #             cv2.line(graphImage, (first_center.u, first_center.v),(second_center.u, second_center.v), (20, 100, 90), 3)
                     
-                    if cfg.VISIBLE.MIN_DIST:
-                        cv2.putText(graphImage, f"{center2centerDistance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
+        #             if cfg.VISIBLE.MIN_DIST:
+        #                 cv2.putText(graphImage, f"{center2centerDistance}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
                     
-                    distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=center2centerDistance
+        #             distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=center2centerDistance
 
-                # if their center is closer than the threshold then they are candidate for "touch"
-                elif check_threshold > center2centerDistance:
-                    # candidate
+        #         # if their center is closer than the threshold then they are candidate for "touch"
+        #         elif check_threshold > center2centerDistance:
+        #             # candidate
 
-                    # if their closest points are touching they are touched for sure
-                    # Increase N if there are many false positive 
-                    minDistance=getAvrMinDistBtwPoints(self.pcl_dict[first_id], self.pcl_dict[second_id], N=6)
+        #             # if their closest points are touching they are touched for sure
+        #             # Increase N if there are many false positive 
+        #             minDistance=getAvrMinDistBtwPoints(self.pcl_dict[first_id], self.pcl_dict[second_id], N=6)
 
-                    if touch_threshold > minDistance:
-                        self.relation_matrix[first_id-1, second_id-1]=1
-                        self.relation_matrix[second_id-1, first_id-1]=1
+        #             if touch_threshold > minDistance:
+        #                 self.relation_matrix[first_id-1, second_id-1]=1
+        #                 self.relation_matrix[second_id-1, first_id-1]=1
 
-                        cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
-                        if cfg.VISIBLE.MIN_DIST:
-                            cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
+        #                 cv2.line(graphImage, (first_center.u, first_center.v), (second_center.u, second_center.v), (20, 100, 90), 3)
+        #                 if cfg.VISIBLE.MIN_DIST:
+        #                     cv2.putText(graphImage, f"{round(minDistance)}", ((first_center.u+second_center.u)//2, (first_center.v+second_center.v)//2), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 20), 1)
 
-                        distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
+        #                 distance_dict[cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
                     
-                    elif 2*touch_threshold > minDistance:
-                        distance_dict["*"+cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
+        #             elif 2*touch_threshold > minDistance:
+        #                 distance_dict["*"+cfg.LABEL_MAP[str(first_id)]+" to "+ cfg.LABEL_MAP[str(second_id)]]=minDistance
 
 
         # Emphasize object centers
@@ -316,15 +339,17 @@ class GraphDrawer:
             if cfg.VISIBLE.CENTER_COORDS:
                 cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
-        ssg=self.simpleGraph.show(self.relation_matrix)
+        ssg=self.simpleGraph.show(relation_matrix, visible_relation_id)
 
-        return graphImage, distance_dict, ssg
+        return graphImage, distance_matrix, ssg
 
 
 class SimpleStableGraph:
-    def __init__(self, num_obj, fname, record) -> None:
+    def __init__(self, num_obj) -> None:
 
-        self.record=record
+        # self.record=record
+        # assert record==False
+
         self.num_obj=num_obj
         self.options = {
             "font_size": 9,
@@ -336,7 +361,7 @@ class SimpleStableGraph:
         }
         
         self.frame_num=0
-        self.fname=fname
+        self.fname="AASimpleStableGraph"
         self.objNames=[]
         self.listOfRelationMatrix=[]
         self._getNames()
@@ -356,24 +381,30 @@ class SimpleStableGraph:
 
     def _stable(self, relation_matrix):
 
-        self.stabileRelationMatrix=np.zeros((self.num_obj, self.num_obj))
+        self.stabileRelationMatrix=np.zeros((self.num_obj, self.num_obj, len(RELATION_LIST)))
         
-        # queue with lenght N
+        # queue with length N
         self.listOfRelationMatrix.append(relation_matrix)
         if len(self.listOfRelationMatrix) > cfg.SIMPLEGRAPH.QUEUE_LENGTH:
             self.listOfRelationMatrix.pop(0)
-
         
-        for i in range(self.num_obj):
-            for j in range(i, self.num_obj):
-                temp=0
-                for t in range(len(self.listOfRelationMatrix)):
-                    if self.listOfRelationMatrix[t][i,j]==1:
-                        temp +=1
+        # for i in range(self.num_obj):
+        #     for j in range(i, self.num_obj):
+        #         temp=0
+        #         for t in range(len(self.listOfRelationMatrix)):
+        #             if self.listOfRelationMatrix[t][i,j]==1:
+        #                 temp +=1
                     
-                if temp >= cfg.SIMPLEGRAPH.MIN_VISIBILITY:
-                    self.stabileRelationMatrix[i,j]=1
-                    self.stabileRelationMatrix[j,i]=1
+        #         if temp >= cfg.SIMPLEGRAPH.MIN_VISIBILITY:
+        #             self.stabileRelationMatrix[i,j]=1
+        #             self.stabileRelationMatrix[j,i]=1
+
+        for rel_mat in self.listOfRelationMatrix:
+            self.stabileRelationMatrix += rel_mat
+        
+        self.stabileRelationMatrix[self.stabileRelationMatrix<cfg.SIMPLEGRAPH.MIN_VISIBILITY] = 0
+        self.stabileRelationMatrix[self.stabileRelationMatrix>=cfg.SIMPLEGRAPH.MIN_VISIBILITY] = 1
+
 
     def _knifeAdjustment(self):
         # if knife not contact with table THEN ASSUME THAT it contact with RIGHT hand and thing which it touches
@@ -396,7 +427,6 @@ class SimpleStableGraph:
             self.stabileRelationMatrix[knife_index, rightHand_index]=1
 
 
-
     def _update_names(self):
         global cfg
         cfg=load_config("./config.yml")
@@ -411,7 +441,7 @@ class SimpleStableGraph:
         self._getNames()
 
 
-    def show(self, relation_matrix):
+    def show(self, relation_matrix, visible_relation_id):
 
         self._stable(relation_matrix)
         # self._knifeAdjustment()
@@ -425,25 +455,31 @@ class SimpleStableGraph:
 
         # print(self.stabileRelationMatrix)
 
-        if self.record:
-            writeForBimacs(self.stabileRelationMatrix, self.fname, self.frame_num)
+        # if self.record:
+        #     writeForBimacs(self.stabileRelationMatrix, self.fname, self.frame_num)
         
 
         for i in range(self.num_obj):
             for j in range(self.num_obj):
-                if self.stabileRelationMatrix[i,j]==1:
+                if self.stabileRelationMatrix[i,j, visible_relation_id]==1:
                     self.G.add_edge(self.objNames[i], self.objNames[j])
                     
         nx.draw_networkx(self.G, self.pos, **self.options)
         # plt.savefig("simpleStableGraph.png")
         # cv2.imshow("Simple Stable Graph", cv2.imread("simpleStableGraph.png"))
         # cv2.imshow("Simple Stable Graph", ssg)
+        
+
         fig.canvas.draw()
         ssg = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
         ssg = ssg.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         trim_coef=70
+
         ssg = cv2.resize(ssg[trim_coef:-trim_coef, trim_coef:-trim_coef], (ssg.shape[1], ssg.shape[0]))
+        cv2.addText(ssg, RELATION_LIST[visible_relation_id], (15, 25), "Arial", 20, (0, 0 , 255), 1)
+        
         plt.close()
+
         # makedirs(path.join("exp3_graphs", "graph_imgs"), exist_ok=True)
         # cv2.imwrite(path.join("exp3_graphs", "graph_imgs", f"graph_{self.frame_num}.png"), ssg)
 

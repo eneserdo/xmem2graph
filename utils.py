@@ -55,7 +55,7 @@ class Timer:
         return val
 
 
-def convert_from_uvd(u, v, d):
+def convert_from_uvd(u, v, d, is_np=False):
     """
     u, v, d -> x, y, z
 
@@ -81,8 +81,37 @@ def convert_from_uvd(u, v, d):
     y = - (v - CY) * d_ / F
     z = - d_
 
-    return x, y, z
+    if is_np:
+        return np.stack((x, y, z), axis=1)
+    else:
+        return x, y, z
 
+
+
+def convert_from_xyz(x, y, z, is_np=False):
+    """
+    x, y, z -> u, v, d
+    """
+
+    if is_np:
+        assert np.isinf(x).any() == False and np.isinf(y).any() == False and np.isinf(z).any() == False
+        assert np.isnan(x).any() == False and np.isnan(y).any() == False and np.isnan(z).any() == False
+    else:
+        raise NotImplementedError("what are you doing?")    
+
+    u = -F * x / z + CX
+    v = F * y / z + CY
+
+
+    mask_to_nan = (u < 0) | (u > cfg.IMG.WIDTH) | (v < 0) | (v > cfg.IMG.HEIGHT)     
+
+    u[mask_to_nan] = np.nan
+    v[mask_to_nan] = np.nan
+
+    if is_np:
+        return np.stack((u, v), axis=1)
+    else:
+        return u, v
 
 class Coord:
     """
@@ -95,43 +124,43 @@ class Coord:
         self.v = v
         self.d = d
 
-        if not (isinstance(u, float) or isinstance(u, int)):
-            print("Erorr")
-            print(f"{u=}, {type(u)=}")
-            raise ValueError
+    #     if not (isinstance(u, float) or isinstance(u, int)):
+    #         print("Erorr")
+    #         print(f"{u=}, {type(u)=}")
+    #         raise ValueError
 
-        if not (isinstance(v, float) or isinstance(v, int)):
-            print("Erorr")
-            print(f"{v=}, {type(v)=}")
-            raise ValueError
+    #     if not (isinstance(v, float) or isinstance(v, int)):
+    #         print("Erorr")
+    #         print(f"{v=}, {type(v)=}")
+    #         raise ValueError
 
-        if not (isinstance(d, float) or isinstance(d, int)):
-            print("Erorr")
-            print(f"{d=}, {type(d)=}")
-            raise ValueError
+    #     if not (isinstance(d, float) or isinstance(d, int)):
+    #         print("Erorr")
+    #         print(f"{d=}, {type(d)=}")
+    #         raise ValueError
 
-        self.x, self.y, self.z = convert_from_uvd(u, v, d)
-        self.imgCoord = np.array([u, v])
-        self.realCoord = np.array([self.x, self.y, self.z])
+    #     self.x, self.y, self.z = convert_from_uvd(u, v, d)
+    #     self.imgCoord = np.array([u, v])
+    #     self.realCoord = np.array([self.x, self.y, self.z])
 
-    def realDistanceTo(self, other) -> float:
-        return sqrt(np.sum((self.realCoord - other.realCoord) ** 2))
+    # def realDistanceTo(self, other) -> float:
+    #     return sqrt(np.sum((self.realCoord - other.realCoord) ** 2))
 
-    # def imgDotProductWith(self, other):
-    #     return (self.imgCoord-other.imgCoord)/np.linalg.norm(self.imgCoord-other.imgCoord)
+    # # def imgDotProductWith(self, other):
+    # #     return (self.imgCoord-other.imgCoord)/np.linalg.norm(self.imgCoord-other.imgCoord)
 
-    def realUnitVectorTo(self, other) -> np.ndarray:
-        return (other.realCoord - self.realCoord) / np.linalg.norm(
-            self.realCoord - other.realCoord
-        )
+    # def realUnitVectorTo(self, other) -> np.ndarray:
+    #     return (other.realCoord - self.realCoord) / np.linalg.norm(
+    #         self.realCoord - other.realCoord
+    #     )
 
-    def __repr__(self) -> str:
-        return f"({round(self.x)}, {round(self.y)}, {round(self.z)})"
+    # def __repr__(self) -> str:
+    #     return f"({round(self.x)}, {round(self.y)}, {round(self.z)})"
 
-    def update_d(self, d) -> None:
-        self.d = d
-        self.x, self.y, self.z = convert_from_uvd(self.u, self.v, self.d)
-        self.realCoord = np.array([self.x, self.y, self.z])
+    # def update_d(self, d) -> None:
+    #     self.d = d
+    #     self.x, self.y, self.z = convert_from_uvd(self.u, self.v, self.d)
+    #     self.realCoord = np.array([self.x, self.y, self.z])
 
 
 def print_debug(**kwargs):
@@ -278,30 +307,30 @@ def putTwoColumnText(image, distance_dict, w1, w2):
 
 
 
-def getMinMax(depth):
-    h, w = depth.shape
-    x, y, z = convert_from_uvd(0, 0, 4)
+# def getMinMax(depth):
+#     h, w = depth.shape
+#     x, y, z = convert_from_uvd(0, 0, 4)
 
-    max_x, max_y, max_z = -float("infinity"), -float("infinity"), -float("infinity")
-    min_x, min_y, min_z = float("infinity"), float("infinity"), float("infinity")
+#     max_x, max_y, max_z = -float("infinity"), -float("infinity"), -float("infinity")
+#     min_x, min_y, min_z = float("infinity"), float("infinity"), float("infinity")
 
-    for v in range(h):
-        for u in range(w):
-            d = depth.item((v, u))
+#     for v in range(h):
+#         for u in range(w):
+#             d = depth.item((v, u))
 
-            if almost_equal(d, 0):
-                continue
-            x, y, z = convert_from_uvd(u, v, d)
+#             if almost_equal(d, 0):
+#                 continue
+#             x, y, z = convert_from_uvd(u, v, d)
 
-            min_x = x if min_x > x else min_x
-            min_y = y if min_y > y else min_y
-            min_z = z if min_z > z else min_z
+#             min_x = x if min_x > x else min_x
+#             min_y = y if min_y > y else min_y
+#             min_z = z if min_z > z else min_z
 
-            max_x = x if max_x < x else max_x
-            max_y = y if max_y < y else max_y
-            max_z = z if max_z < z else max_z
+#             max_x = x if max_x < x else max_x
+#             max_y = y if max_y < y else max_y
+#             max_z = z if max_z < z else max_z
 
-    return np.array([min_x, min_y, min_z]), np.array([max_x, max_y, max_z])
+#     return np.array([min_x, min_y, min_z]), np.array([max_x, max_y, max_z])
 
 
 def writeCenters(i, centers_dict, max_, min_):
@@ -406,6 +435,40 @@ def add_text_to_image(
     return image_rgb
 
 
-def get_bboxed_image(bbox_list):
-    # TODO remap the bounding box onto the original image
-    ...
+def get_bboxed_image(image, bbox_list):
+    # bbox_list: N x 6 : [x0, x1, y0, y1, z0, z1]
+    # bbox_list -> vertices_xyz -> vertices_uv -> edges
+
+    vertex_pairs = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]]
+
+    for bbox in bbox_list:
+        if np.allclose(bbox, 0):
+            continue
+
+        vertices_xyz = np.array([[bbox[0], bbox[2], bbox[4]], 
+                                 [bbox[0], bbox[2], bbox[5]], 
+                                 [bbox[0], bbox[3], bbox[4]], 
+                                 [bbox[0], bbox[3], bbox[5]], 
+                                 [bbox[1], bbox[2], bbox[4]], 
+                                 [bbox[1], bbox[2], bbox[5]], 
+                                 [bbox[1], bbox[3], bbox[4]], 
+                                 [bbox[1], bbox[3], bbox[5]]])
+                              
+        vertices_uv = convert_from_xyz(vertices_xyz[:, 0], vertices_xyz[:, 1], vertices_xyz[:, 2], is_np=True)
+        
+        # get edges from vertices
+
+        for v1, v2 in vertex_pairs:
+            if np.isnan(vertices_uv[v1]).any() or np.isnan(vertices_uv[v2]).any():
+                print("Nan in bbox vertices!")
+                continue
+
+            p1=np.flip(vertices_uv[v1].astype(np.int))
+            p2=np.flip(vertices_uv[v2].astype(np.int))
+            try:
+                cv2.line(image, p1, p2, (0, 0, 100), 1)
+            except:
+                print("v1:", v1, "v2:", v2)
+                print("p1:", p1, "p2:", p2)
+                print("p1_xyz:", vertices_xyz[v1], "p2_xyz:", vertices_xyz[v2])
+                raise ValueError            

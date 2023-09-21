@@ -1,6 +1,7 @@
 import os
 import sys
 import cv2
+import rospy
 import torch
 # import torch.nn.functional as F
 # from torch.utils.data import DataLoader
@@ -21,10 +22,13 @@ from inference.inference_core import InferenceCore
 from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
 
 
+from std_msgs.msg import String
+
 # My libs
-from ros_capture import RosRun, shift, getBlended
+from ros_capture import RosRun
+# from ros_capture import shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, getMinMax, putTwoColumnText
+from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, putTwoColumnText
 from Mask import mask2orderedCenters, adaptMask
 
 import cProfile
@@ -103,7 +107,7 @@ def main(args):
     device="cuda"
 
 
-    print("CUDA version: ",torch.version.cuda)
+    print("CUDA version: ", torch.version.cuda)
     network = XMem(config, './XMem/saves/XMem.pth').eval().to(device)
 
     torch.cuda.empty_cache()
@@ -133,35 +137,39 @@ def main(args):
     timer=Timer()
     i=1
 
+    pub = rospy.Publisher('chatter', String, queue_size=10)
+    # rospy.init_node('talker', anonymous=True)
+
     with torch.cuda.amp.autocast(enabled=True):
 
         counter=0
 
         # FOR ROS BAGS
-        # for temp_rgb, temp_depth in rosrunner.frameGenerator():
-        #     if cfg.CAMERA_NAME=="ZED":
-        #         temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
-        #         temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
-        #         temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
+        for temp_rgb, temp_depth in rosrunner.frameGenerator():
+            if cfg.CAMERA_NAME=="ZED":
+                temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
+                temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
+                temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
                 
-        #         temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+                temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+        # # # # # # # # # #
 
         # FOR IMAGE FOLDERS
-        rgb_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/rgb/*.png"))
-        depth_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/depth/*.npy"))
-        # rgb_files=sorted(glob.glob("rosdata/aralik_stir/rgb/*.png"))
-        # depth_files=sorted(glob.glob("rosdata/aralik_stir/depth/*.npy"))
+        # rgb_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/rgb/*.png"))
+        # depth_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/depth/*.npy"))
+        # # rgb_files=sorted(glob.glob("rosdata/aralik_stir/rgb/*.png"))
+        # # depth_files=sorted(glob.glob("rosdata/aralik_stir/depth/*.npy"))
 
-        for rgb_path, depth_path in zip(rgb_files, depth_files):
-            temp_rgb=cv2.imread(rgb_path, -1)
-            temp_rgb=cv2.resize(temp_rgb, (640, 360))
-
+        # for rgb_path, depth_path in zip(rgb_files, depth_files):
+        #     temp_rgb=cv2.imread(rgb_path, -1)
+        #     temp_rgb=cv2.resize(temp_rgb, (640, 360))
             # temp_depth=cv2.imread(depth_path, -1)
-            counter+=1
-            print(counter, "/", len(rgb_files))
+            # counter+=1
+            # print(counter, "/", len(rgb_files))
 
             # temp_rgb=np.load(rgb_path)
-            temp_depth=np.load(depth_path)
+            # temp_depth=np.load(depth_path)
+        # # # # # # # # # #
 
             timer.start()
 
@@ -169,8 +177,9 @@ def main(args):
                 break
             
             if shift_x!=0 or shift_x!=0:
-                rgb_img=shift(temp_rgb, shift_x, shift_y)
-                depth_img=shift(temp_depth, -shift_x, -shift_y)
+                # rgb_img=shift(temp_rgb, shift_x, shift_y)
+                # depth_img=shift(temp_depth, -shift_x, -shift_y)
+                pass
             else:
                 rgb_img=temp_rgb
                 depth_img=temp_depth
@@ -199,18 +208,16 @@ def main(args):
 
                 cv2.namedWindow("combined")
                 cv2.setMouseCallback('combined', print_coord)
-                cv2.createTrackbar('check_threshold','combined',600,750,nothing)
-                cv2.createTrackbar('touch_threshold','combined',24,100,nothing)
-                cv2.createTrackbar('table_threshold','combined',15,100,nothing)
+                cv2.createTrackbar('distance_equality_threshold','combined',100,750,nothing)
+                cv2.createTrackbar('visible_relation_id','combined',0,14,nothing)
                 run_xmem=True
 
-                tableRelation=TableRelation(rgb_img, depth_img, num_objects, use_existing=args.table_points_ready)
-                graphDrawer=GraphDrawer(num_obj=num_objects, fname=fname, beta=0.95, tr=tableRelation, record=args.record_frames)
+                graphDrawer=GraphDrawer(num_obj=num_objects, fname=fname, beta=0.95)
             
             if show_blended:
-                blended=getBlended(rgb_img, depth_img)
-                blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
-        
+                # blended=getBlended(rgb_img, depth_img)
+                # blended = cv2.putText(blended, f"shift x:{2*shift_x}, y: {2*shift_y}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv2.LINE_AA)
+                pass    
             
             if run_xmem:
                 frame_torch, _ = image_to_torch(rgb_img, device=device)
@@ -218,14 +225,13 @@ def main(args):
                 prediction = torch_prob_to_numpy_mask(prediction)
                 centers=mask2orderedCenters(prediction, depth_img)
                 # print("Centers:", centers)
-                check_threshold = cv2.getTrackbarPos('check_threshold','combined')
-                touch_threshold = cv2.getTrackbarPos('touch_threshold','combined')
-                table_threshold = cv2.getTrackbarPos('table_threshold','combined')
+                distance_equality_threshold = cv2.getTrackbarPos('distance_equality_threshold','combined')
+                visible_relation_id = cv2.getTrackbarPos('visible_relation_id','combined')
  
                 start_graph=perf_counter()
-                graphImage, distance_dict, ssg = graphDrawer.getGraph(centers, prediction.copy(), check_threshold, touch_threshold, table_threshold, depth=depth_img)
+                graphImage, distance_dict, ssg = graphDrawer.getGraph(rgb_img, centers, prediction.copy(), distance_equality_threshold, visible_relation_id, depth=depth_img)
                 
-                # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, touch_threshold)
+                # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, visible_relation_id)
 
                 putNames(graphImage, centers)
                 print("graph time:", round(perf_counter()-start_graph, 3))
@@ -248,7 +254,7 @@ def main(args):
                 combined[h1:, :w1]=graphImage
                 # combined[h1-h2//2 : h1-h2//2+h2, w1:]=ssg
                 combined[2*h1-h2:, w1:]=ssg
-                putTwoColumnText(combined, distance_dict, w1, w2)
+                # putTwoColumnText(combined, distance_dict, w1, w2)
 
 
                 cv2.imshow("combined", combined)
@@ -278,7 +284,9 @@ def main(args):
             # print(depth_img.shape)
             # print(getMinMax(depth_img))
             
-            key = cv2.waitKey(1) & 0xFF
+            pub.publish("Hello world")
+
+            key = cv2.waitKey(30) & 0xFF
             #
             if key  == ord('q'): 
                 break 

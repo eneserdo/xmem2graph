@@ -8,8 +8,13 @@ import cv2
 # Dynamic relations: moving together, halting together, fixed moving together, getting close, moving apart, stable
 
 RELATION_LIST = ['contact', 'above', 'below', 'left of', 'right of', 'behind of', 'in front of',
-             'inside', 'surround', 'moving together', 'halting together', 'fixed moving together',
-             'getting close', 'moving apart', 'stable']
+                 'inside', 'surround', 'moving together', 'halting together', 'fixed moving together',
+                 'getting close', 'moving apart', 'stable']
+
+RELATION_LIST_SHORT = ['C', 'A', 'B', 'L', 'R', 'BE', 'FR',
+                       'IN', 'SUR', 'MOV', 'HLT', 'FMOV',
+                       'CLO', 'MOVA', 'S']
+
 
 RELATION = lambda a : RELATION_LIST.index(a)
 
@@ -32,12 +37,6 @@ def distance_btw_bb(bbox_a, bbox_b):
     return distance
 
 
-
-def get_pointcloud_list(mask_img, depth_img):
-    # Mask of the objects and depth image to point cloud
-    ...
-
-
 def get_single_bbox_from_pcl(coords_list):
     min_x, min_y, min_z = np.inf, np.inf, np.inf
     max_x, max_y, max_z = -np.inf, -np.inf, -np.inf
@@ -50,30 +49,58 @@ def get_single_bbox_from_pcl(coords_list):
 
 
 def get_pcl_to_bbox(pointcloud_dict, N):
-    # Get the bounding box of each object
+    """returns the bounding box of each object, if the object is not visible, the corresponding row is all zeros"""
+
     # pointcloud_dict is a dictionary of list of Coords
+    bboxes = np.zeros((N, 6)) # [x0, x1, y0, y1, z0, z1]
+
+    # for idx, pcl in pointcloud_dict.items():
     
-    bbox=np.zeros((N, 6)) # [x0, x1, y0, y1, z0, z1]
+    # keys starts from 1 for some reason
+    for idx in range(N):
+        # pcl: N x 3
+        pcl = pointcloud_dict.get(idx+1, None)
+        
+        if not isinstance(pcl, np.ndarray):
+            bboxes[idx] = 0
+        
+        else:
+            pcl_T = pcl.T
+            mins = np.min(pcl_T, axis=1)
+            maxs = np.max(pcl_T, axis=1)
 
-    for idx, pcl in pointcloud_dict.items():
-        bbox[idx] = 
+            bboxes[idx] = np.array([mins[0], maxs[0], mins[1], maxs[1], mins[2], maxs[2]])
 
-def get_relation_matrix(bbox_list, past_bbox_list, ignore_mask, distance_equality_threshold):
+            if np.allclose(bboxes[idx], 0):
+                print("pcl_T:", pcl_T)
+                raise ValueError("Bounding box is all zeros")
+
+    return bboxes
+
+
+def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
     # bbox_list: N x 6 : [x0, x1, y0, y1, z0, z1]
     # ignore_mask: N x 1 : 1 if the object is not visible, 0 otherwise
 
-    # FIXME Assumes that the objects are ordered in the same way in both bbox_list and past_bbox_list and they are the same objects
+    # Assumes that the objects are ordered in the same way in both bbox_list and past_bbox_list and they are the same objects. 
+    # If an object is not visible, the corresponding row in bbox_list/past_bbox_list should be -1
 
     relation_matrix = np.zeros((len(bbox_list), len(bbox_list), len(RELATION_LIST)))
+    distance_matrix = np.zeros((len(bbox_list), len(bbox_list)))
     N=len(bbox_list)
     
     # Static relations
-    for subject_idx in range(N):
+    for subject_idx in range(N):        
         for object_idx in range(subject_idx+1, N):
             
             subject_bb = bbox_list[subject_idx]
             object_bb = bbox_list[object_idx]
-            
+
+            if np.allclose(subject_bb, -1) or np.allclose(object_bb, -1):
+                continue
+
+            ### Static relations
+
             # contact:
             if IS_CONTACTING(subject_bb, object_bb):
                 relation_matrix[subject_idx, object_idx, RELATION('contact')] = 1
@@ -122,12 +149,18 @@ def get_relation_matrix(bbox_list, past_bbox_list, ignore_mask, distance_equalit
                 relation_matrix[object_idx, subject_idx, RELATION('inside')] = 1
 
 
-            # Dynamic relations
+            ### Dynamic relations
             subject_past_bb = past_bbox_list[subject_idx]
             object_past_bb = past_bbox_list[object_idx]
+            
+            if np.allclose(subject_past_bb, -1) or np.allclose(object_past_bb, -1):
+                continue
+
             delta_so=distance_btw_bb(subject_bb, object_bb)
             delta_so_past=distance_btw_bb(subject_past_bb, object_past_bb)
 
+            distance_matrix[subject_idx, object_idx] = delta_so
+            distance_matrix[object_idx, subject_idx] = delta_so
 
             p1 = IS_CONTACTING(subject_bb, object_bb) and IS_CONTACTING(subject_past_bb, object_past_bb)
 
@@ -164,5 +197,18 @@ def get_relation_matrix(bbox_list, past_bbox_list, ignore_mask, distance_equalit
                     relation_matrix[object_idx, subject_idx, RELATION('stable')] = 1
 
 
+    return relation_matrix, distance_matrix
 
-    return relation_matrix
+
+def get_relation_string(relation_matrix, obj_names):
+    
+    relation_string = ""
+
+    for i in range(len(obj_names)):
+        for j in range(i+1, len(obj_names)):
+            for k in range(len(RELATION_LIST)):
+                if relation_matrix[i, j, k] == 1:
+                    relation_string += f"{obj_names[i]}-{RELATION_LIST_SHORT[k]}-{obj_names[j]}\n"
+    
+    return relation_string
+

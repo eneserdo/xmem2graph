@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from utils import Coord, print_debug, arrayAndDepthToCoord, almost_equal, load_config
+from utils import Coord, convert_from_uvd, print_debug, arrayAndDepthToCoord, almost_equal, load_config
 
 cfg=load_config("./config.yml")
 
@@ -51,7 +51,7 @@ def getAvrMinDistBtwPoints(points1, points2, N):
     return np.mean(np.sort(dist_array.flatten())[:N])
 
 
-def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray, addCenterToBoundary=False):
+def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray):
     """
         Calculates the boundary points of the given mask (for single object), 
         then only choose every $(every_nth_element) th element
@@ -66,33 +66,38 @@ def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray, addCenterToBoun
     boundaryPoints = contours[::cfg.GRAPHER.EVERY_NTH_ELEMENT, :, ::-1]
     boundaryPoints = boundaryPoints.reshape(-1, 2)
 
-    bP_as_coord = []
-    
-    if not addCenterToBoundary:
-        for bP in boundaryPoints:
-            # bP[0]=v, bP[1]=u
-            # if not almost_equal(depth.item((bP[0], bP[1])), 0):
-            bP_as_coord.append(Coord(bP.item(1), bP.item(0), depth.item((bP[0], bP[1]))))
-    else:
-        M = cv2.moments(thresh)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        center=np.array([cY, cX])
+    # filter out points with depth close to 0
+    mask_to_keep = depth[boundaryPoints[:, 0], boundaryPoints[:, 1]] > 1e-4
+    boundaryPoints = boundaryPoints[mask_to_keep]
 
-        ratios=[0.4, 0.75, 0.98]
+    boundaryPoints_xyz = convert_from_uvd(boundaryPoints[:, 0], boundaryPoints[:, 1], depth[boundaryPoints[:, 0], boundaryPoints[:, 1]], is_np=True)
+    # bP_as_coord = []
+    # if not addCenterToBoundary:
+        # for bP in boundaryPoints:
+        #     # bP[0]=v, bP[1]=u
+        #     # if not almost_equal(depth.item((bP[0], bP[1])), 0):
+        #     bP_as_coord.append(Coord(bP.item(1), bP.item(0), depth.item((bP[0], bP[1]))))
+    # else:
+    #     M = cv2.moments(thresh)
+    #     cX = int(M["m10"] / M["m00"])
+    #     cY = int(M["m01"] / M["m00"])
+    #     center=np.array([cY, cX])
 
-        for i, bP in enumerate(boundaryPoints):
-            for k, r in enumerate(ratios):
-                """
-                k=0: get every 3rd
-                k=1: get every 2nd
-                k=2: get everything
-                """
-                if i%(len(ratios)-k)==0:
-                    tempP=(bP*r+(1-r)*center).astype(np.uint32)
-                    bP_as_coord.append(Coord(tempP.item(1), tempP.item(0), depth.item((tempP[0], tempP[1]))))
+    #     ratios=[0.4, 0.75, 0.98]
+
+    #     for i, bP in enumerate(boundaryPoints):
+    #         for k, r in enumerate(ratios):
+    #             """
+    #             k=0: get every 3rd
+    #             k=1: get every 2nd
+    #             k=2: get everything
+    #             """
+    #             if i%(len(ratios)-k)==0:
+    #                 tempP=(bP*r+(1-r)*center).astype(np.uint32)
+    #                 bP_as_coord.append(Coord(tempP.item(1), tempP.item(0), depth.item((tempP[0], tempP[1]))))
                 
-    return bP_as_coord
+    # return bP_as_coord
+    return boundaryPoints_xyz
 
 
 def mask2InnerPoints(obj_mask: np.ndarray, depth: np.ndarray):

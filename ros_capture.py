@@ -57,7 +57,7 @@ class RosRun:
 
 
     def frameGenerator(self):
-        rospy.init_node('listener', anonymous=True)
+        rospy.init_node('xmem2graph', anonymous=True)
         rospy.Subscriber(self.rgb_topic, Img_Msg, self.imgCallback1)
         rospy.Subscriber(self.depth_topic, Img_Msg, self.imgCallback2)
         print("Waiting...")

@@ -7,6 +7,7 @@ init_roslaunch.sh
 rosbags/
 deneme/
 deneme*.py
+deneme*.ipynb
 sampleVids/
 *.cam
 *.png

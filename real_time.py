@@ -22,13 +22,18 @@ from inference.inference_core import InferenceCore
 from inference.interact.interactive_utils import image_to_torch, index_numpy_to_one_hot_torch, torch_prob_to_numpy_mask, overlay_davis
 
 
-from std_msgs.msg import String
+# from _Float64 import Float64
+# from rospy.numpy_msg import numpy_msg
+
+
+from std_msgs.msg import Float64MultiArray
+
 
 # My libs
 from ros_capture import RosRun
 # from ros_capture import shift, getBlended
 from grapher import GraphDrawer, TableRelation
-from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, putTwoColumnText
+from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, putTwoColumnText, serialize_graph_raw
 from Mask import mask2orderedCenters, adaptMask
 
 import cProfile
@@ -137,8 +142,9 @@ def main(args):
     timer=Timer()
     i=1
 
-    pub = rospy.Publisher('chatter', String, queue_size=10)
-    # rospy.init_node('talker', anonymous=True)
+    pub = rospy.Publisher('graph_raw', Float64MultiArray, queue_size=10)
+    # pub = rospy.Publisher('graph_raw', numpy_msg(Float64), queue_size=10)
+
 
     with torch.cuda.amp.autocast(enabled=True):
 
@@ -147,11 +153,23 @@ def main(args):
         # FOR ROS BAGS
         for temp_rgb, temp_depth in rosrunner.frameGenerator():
             if cfg.CAMERA_NAME=="ZED":
+
+                # remove nans
                 temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
-                temp_depth=np.where(temp_depth==np.inf, -1, temp_depth)
-                temp_depth=np.where(temp_depth==-1, np.max(temp_depth), temp_depth)
+
+                # remove posinfs
+                max_val=temp_depth[temp_depth!=np.inf].max()
+                temp_depth=np.where(temp_depth==np.inf, max_val, temp_depth)
+
+                # remove neginfs
+                min_val=temp_depth[temp_depth!=-np.inf].min()
+                temp_depth=np.where(temp_depth==-np.inf, min_val, temp_depth)
                 
                 temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+            
+            # np.save("temp_depth.npy", temp_depth)
+            # break
+
         # # # # # # # # # #
 
         # FOR IMAGE FOLDERS
@@ -229,7 +247,7 @@ def main(args):
                 visible_relation_id = cv2.getTrackbarPos('visible_relation_id','combined')
  
                 start_graph=perf_counter()
-                graphImage, distance_dict, ssg = graphDrawer.getGraph(rgb_img, centers, prediction.copy(), distance_equality_threshold, visible_relation_id, depth=depth_img)
+                graphImage, distance_dict, stabile_distance_matrix, ssg = graphDrawer.getGraph(rgb_img, centers, prediction.copy(), distance_equality_threshold, visible_relation_id, depth=depth_img)
                 
                 # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, visible_relation_id)
 
@@ -283,8 +301,13 @@ def main(args):
             
             # print(depth_img.shape)
             # print(getMinMax(depth_img))
-            
-            pub.publish("Hello world")
+
+            stabile_distance_matrix = np.arange(12).reshape(2, 2, 3)
+            ros_data=Float64MultiArray()
+            ros_data.data.extend(serialize_graph_raw(np.array([2, 3]), stabile_distance_matrix))
+            # stabile_distance_matrix=np.array([0,1,2,3.]).reshape(2, 2, 1)
+
+            pub.publish(ros_data)
 
             key = cv2.waitKey(30) & 0xFF
             #

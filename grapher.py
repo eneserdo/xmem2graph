@@ -2,7 +2,7 @@ import json
 from os import makedirs, mkdir, path
 import os
 import cv2
-import numpy as np
+import numpy as np  
 import networkx as nx
 from math import sqrt
 from relations import RELATION_LIST, get_pcl_to_bbox, get_relation_matrix
@@ -122,7 +122,6 @@ class GraphDrawer:
     """
         Transforms semantic segmented image masks to graphs on image
     """
-
     def __init__(self, num_obj, fname, beta=0.95):
 
 
@@ -223,8 +222,8 @@ class GraphDrawer:
         
         # assert touch_threshold < check_threshold
         
-        self._impute_and_push(curr_centers)
-        self._movingAverage(curr_centers)
+        # self._impute_and_push(curr_centers)
+        # self._movingAverage(curr_centers)
 
         centers = curr_centers
 
@@ -339,9 +338,9 @@ class GraphDrawer:
             if cfg.VISIBLE.CENTER_COORDS:
                 cv2.putText(graphImage, f"{center}", (center.u - 25, center.v + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 204), 1)
 
-        ssg=self.simpleGraph.show(relation_matrix, visible_relation_id)
+        ssg, stabile_distance_matrix=self.simpleGraph.show(relation_matrix, visible_relation_id)
 
-        return graphImage, distance_matrix, ssg
+        return graphImage, distance_matrix, stabile_distance_matrix, ssg
 
 
 class SimpleStableGraph:
@@ -486,6 +485,6 @@ class SimpleStableGraph:
 
         self.frame_num+=1
              
-        return ssg
+        return ssg, self.stabileRelationMatrix
 
 

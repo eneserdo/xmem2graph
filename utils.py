@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from time import perf_counter
 from easydict import EasyDict
 from math import ceil, floor, isinf, sqrt
@@ -465,10 +465,23 @@ def get_bboxed_image(image, bbox_list):
 
             p1=np.flip(vertices_uv[v1].astype(np.int))
             p2=np.flip(vertices_uv[v2].astype(np.int))
-            try:
-                cv2.line(image, p1, p2, (0, 0, 100), 1)
-            except:
-                print("v1:", v1, "v2:", v2)
-                print("p1:", p1, "p2:", p2)
-                print("p1_xyz:", vertices_xyz[v1], "p2_xyz:", vertices_xyz[v2])
-                raise ValueError            
+            # try:
+            #     cv2.line(image, p1, p2, (0, 0, 100), 1)
+            # except:
+            #     print("v1:", v1, "v2:", v2)
+            #     print("p1:", p1, "p2:", p2)
+            #     print("p1_xyz:", vertices_xyz[v1], "p2_xyz:", vertices_xyz[v2])
+            #     raise ValueError            
+
+
+def serialize_graph_raw(object_list: np.ndarray, graph_tensor: np.ndarray) -> List:
+    # TODO: deal with missing objects
+    # object_list: not one-hot-encoded
+
+    assert len(graph_tensor.shape) == 3
+    
+    assert graph_tensor.shape[0] == object_list.shape[0], "object_list is not matching with graph_tensor"
+    
+    serialized=np.concatenate([graph_tensor.shape[:1], object_list, graph_tensor.reshape(-1)])
+    
+    return serialized.tolist()

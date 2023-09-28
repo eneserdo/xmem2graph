@@ -59,15 +59,21 @@ def get_pcl_to_bbox(pointcloud_dict, N):
     # keys starts from 1 for some reason
     for idx in range(N):
         # pcl: N x 3
-        pcl = pointcloud_dict.get(idx+1, None)
+        # pcl = pointcloud_dict.get(idx+1, None)
         
-        if not isinstance(pcl, np.ndarray):
+        if not (idx+1 in pointcloud_dict):
             bboxes[idx] = 0
         
         else:
-            pcl_T = pcl.T
-            mins = np.min(pcl_T, axis=1)
-            maxs = np.max(pcl_T, axis=1)
+            pcl = pointcloud_dict.get(idx+1)
+            try:
+                pcl_T = pcl.T
+                mins = np.min(pcl_T, axis=1)
+                maxs = np.max(pcl_T, axis=1)
+            except:
+                print(f"ERR in idx:", idx+1)
+                bboxes[idx] = 0
+                continue
 
             bboxes[idx] = np.array([mins[0], maxs[0], mins[1], maxs[1], mins[2], maxs[2]])
 

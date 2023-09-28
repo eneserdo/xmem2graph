@@ -203,6 +203,7 @@ def main(args):
                 depth_img=temp_depth
             
             if set_mask:
+                print("setting mask...")
                 cv2.destroyAllWindows()
                 set_mask=False
 

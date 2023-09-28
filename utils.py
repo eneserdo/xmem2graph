@@ -435,6 +435,51 @@ def add_text_to_image(
     return image_rgb
 
 
+def getRotationMatrix(w0: np.ndarray, theta: float = None):
+    """Calculates rotation matrix using Rodrigue's formula (norm of the w is assigned to theta)"""
+    # FIXME modifies the w implicitly
+
+    if theta is None:
+        norm = np.linalg.norm(w0)
+        w0 = w0 / norm
+        theta = norm
+    else:
+        assert np.allclose(np.linalg.norm(w0), 1.0)
+
+    W_hat = np.array([[0, -w0[2], w0[1]], [w0[2], 0, -w0[0]], [-w0[1], w0[0], 0]])
+
+    # Rodrigue's formula
+    R = (np.identity(3) + np.sin(theta) * W_hat + (1 - np.cos(theta)) * np.matmul(W_hat, W_hat))
+
+    # sanity check
+    assert np.allclose(np.linalg.det(R), 1.0)
+
+    return R
+
+
+def homogeneousMultiplication(A, x):
+    """A.shape = [D, D], x.shape = [N, D-1];
+    Calculates x' = A @ [x.T, 1].T
+    then returns x' in inhomogeneous vector form
+    """
+    assert A.shape[0] == A.shape[1] and x.shape[1] == (A.shape[0] - 1)
+
+    x = np.concatenate((x, np.ones((x.shape[0], 1))), 1)
+    x = A @ x.T
+    x = x[:-1] / x[-1]
+
+    return x.T
+
+
+def rotate_points_in_x(points, theta=-20):
+    """points.shape = [N, 3]"""
+    R = getRotationMatrix(np.array([1, 0, 0]), theta)
+    A = np.identity(4)
+    A[:3, :3] = R
+
+    return homogeneousMultiplication(A, points)
+
+
 def get_bboxed_image(image, bbox_list):
     # bbox_list: N x 6 : [x0, x1, y0, y1, z0, z1]
     # bbox_list -> vertices_xyz -> vertices_uv -> edges
@@ -463,15 +508,23 @@ def get_bboxed_image(image, bbox_list):
                 print("Nan in bbox vertices!")
                 continue
 
-            p1=np.flip(vertices_uv[v1].astype(np.int))
-            p2=np.flip(vertices_uv[v2].astype(np.int))
+            p1=np.flip(vertices_uv[v1].astype(np.int32))
+            p2=np.flip(vertices_uv[v2].astype(np.int32))
             # try:
-            #     cv2.line(image, p1, p2, (0, 0, 100), 1)
+            # print("ERR in line")
+            # np.save("image_debug.npy", image)
+            # np.save("p1_debug.npy", p1)
+            # np.save("p2_debug.npy", p2)
+            # print("p1:", p1, "p2:", p2)
+            # image = cv2.line(image, p1, p2, (0, 0, 100), 1)
             # except:
+            #     raise ValueError()
+            #     print("ERR in line")
             #     print("v1:", v1, "v2:", v2)
             #     print("p1:", p1, "p2:", p2)
             #     print("p1_xyz:", vertices_xyz[v1], "p2_xyz:", vertices_xyz[v2])
-            #     raise ValueError            
+                
+                # raise ValueError            
 
 
 def serialize_graph_raw(object_list: np.ndarray, graph_tensor: np.ndarray) -> List:

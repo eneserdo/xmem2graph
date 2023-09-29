@@ -71,7 +71,7 @@ def get_pcl_to_bbox(pointcloud_dict, N):
                 mins = np.min(pcl_T, axis=1)
                 maxs = np.max(pcl_T, axis=1)
             except:
-                print(f"ERR in idx:", idx+1)
+                print(f"Probably no point is selected", idx+1)
                 bboxes[idx] = 0
                 continue
 

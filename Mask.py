@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from utils import Coord, convert_from_uvd, print_debug, arrayAndDepthToCoord, almost_equal, load_config
+from utils import Coord, convert_from_xyz, convert_from_uvd, print_debug, arrayAndDepthToCoord, almost_equal, load_config
 
 cfg=load_config("./config.yml")
 
@@ -63,14 +63,19 @@ def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray):
     # If more htan one, combines them
     contours = np.vstack(contours)
 
-    boundaryPoints = contours[::cfg.GRAPHER.EVERY_NTH_ELEMENT, :, ::-1]
-    boundaryPoints = boundaryPoints.reshape(-1, 2)
+    boundaryPoints = contours[::cfg.GRAPHER.EVERY_NTH_ELEMENT, :]
+    boundaryPoints = boundaryPoints.squeeze()
 
     # filter out points with depth close to 0
-    mask_to_keep = depth[boundaryPoints[:, 0], boundaryPoints[:, 1]] > 1e-4
+    mask_to_keep = depth[boundaryPoints[:, 1], boundaryPoints[:, 0]] > 1e-4
     boundaryPoints = boundaryPoints[mask_to_keep]
 
-    boundaryPoints_xyz = convert_from_uvd(boundaryPoints[:, 0], boundaryPoints[:, 1], depth[boundaryPoints[:, 0], boundaryPoints[:, 1]], is_np=True)
+    # Note that boundaryPoints[:, 0] is v (x), boundaryPoints[:, 1] is u (y)
+    boundaryPoints_xyz = convert_from_uvd(boundaryPoints[:, 0], boundaryPoints[:, 1], depth[boundaryPoints[:, 1], boundaryPoints[:, 0]], is_np=True)
+    
+    # to debug
+    temp_uv = convert_from_xyz(boundaryPoints_xyz[:, 0], boundaryPoints_xyz[:, 1], boundaryPoints_xyz[:, 2], is_np=True)
+
     # bP_as_coord = []
     # if not addCenterToBoundary:
         # for bP in boundaryPoints:

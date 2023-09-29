@@ -105,6 +105,9 @@ def convert_from_xyz(x, y, z, is_np=False):
 
     mask_to_nan = (u < 0) | (u > cfg.IMG.WIDTH) | (v < 0) | (v > cfg.IMG.HEIGHT)     
 
+    if mask_to_nan.any():
+        print("nan vals")
+
     u[mask_to_nan] = np.nan
     v[mask_to_nan] = np.nan
 
@@ -508,23 +511,23 @@ def get_bboxed_image(image, bbox_list):
                 print("Nan in bbox vertices!")
                 continue
 
-            p1=np.flip(vertices_uv[v1].astype(np.int32))
-            p2=np.flip(vertices_uv[v2].astype(np.int32))
-            # try:
-            # print("ERR in line")
-            # np.save("image_debug.npy", image)
-            # np.save("p1_debug.npy", p1)
-            # np.save("p2_debug.npy", p2)
-            # print("p1:", p1, "p2:", p2)
-            # image = cv2.line(image, p1, p2, (0, 0, 100), 1)
-            # except:
-            #     raise ValueError()
-            #     print("ERR in line")
-            #     print("v1:", v1, "v2:", v2)
-            #     print("p1:", p1, "p2:", p2)
-            #     print("p1_xyz:", vertices_xyz[v1], "p2_xyz:", vertices_xyz[v2])
-                
-                # raise ValueError            
+            # p1=np.flip(vertices_uv[v1].astype(np.int32))
+            # p2=np.flip(vertices_uv[v2].astype(np.int32))
+            p1=vertices_uv[v1].astype(np.int32)
+            p2=vertices_uv[v2].astype(np.int32)
+            try:
+                # np.save("image_debug.npy", image)
+                # np.save("p1_debug.npy", p1)
+                # np.save("p2_debug.npy", p2)
+                # print("p1:", p1, "p2:", p2)
+                image = cv2.line(image, p1, p2, (0, 0, 100), 1)
+            except:
+                # raise ValueError()
+                print("ERR in line")
+                print("v1:", v1, "v2:", v2)
+                print("p1:", p1, "p2:", p2)
+                print("p1_xyz:", vertices_xyz[v1], "p2_xyz:", vertices_xyz[v2])
+                raise ValueError            
 
 
 def serialize_graph_raw(object_list: np.ndarray, graph_tensor: np.ndarray) -> List:

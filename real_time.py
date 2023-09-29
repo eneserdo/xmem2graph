@@ -1,7 +1,7 @@
 import os
 import sys
 import cv2
-import rospy
+# import rospy
 import torch
 # import torch.nn.functional as F
 # from torch.utils.data import DataLoader
@@ -26,11 +26,11 @@ from inference.interact.interactive_utils import image_to_torch, index_numpy_to_
 # from rospy.numpy_msg import numpy_msg
 
 
-from std_msgs.msg import Float64MultiArray
+# from std_msgs.msg import Float64MultiArray
 
 
 # My libs
-from ros_capture import RosRun
+# from ros_capture import RosRun
 # from ros_capture import shift, getBlended
 from grapher import GraphDrawer, TableRelation
 from utils import Timer, convert_from_uvd, Coord, load_config, argparser, add_text_to_image, dictToText, putTwoColumnText, serialize_graph_raw
@@ -124,7 +124,7 @@ def main(args):
     shift_y = args.shift_y
 
 
-    rosrunner = RosRun()
+    # rosrunner = RosRun()
     record_frames=args.record_frames
     current_time=datetime.now()
     fname=os.path.join("results", args.output_folder+"-"+ current_time.strftime("%m-%d-%Y, %H-%M-%S"))
@@ -142,7 +142,7 @@ def main(args):
     timer=Timer()
     i=1
 
-    pub = rospy.Publisher('graph_raw', Float64MultiArray, queue_size=10)
+    # pub = rospy.Publisher('graph_raw', Float64MultiArray, queue_size=10)
     # pub = rospy.Publisher('graph_raw', numpy_msg(Float64), queue_size=10)
 
 
@@ -151,21 +151,26 @@ def main(args):
         counter=0
 
         # FOR ROS BAGS
-        for temp_rgb, temp_depth in rosrunner.frameGenerator():
-            if cfg.CAMERA_NAME=="ZED":
+        # for temp_rgb, temp_depth in rosrunner.frameGenerator():
+        rgb_files=sorted(glob.glob("/home/enerd/new_test_bimanual_rosbags/bimanual_test_data_1_images/rgb/*.npy"))
+        depth_files=sorted(glob.glob("/home/enerd/new_test_bimanual_rosbags/bimanual_test_data_1_images/depth/*.npy"))
 
-                # remove nans
-                temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
+        for rgb_path, depth_path in zip(rgb_files, depth_files):
+            # if cfg.CAMERA_NAME=="ZED":
+            temp_rgb=np.load(rgb_path)
+            temp_depth=np.load(depth_path)
+                # # remove nans
+                # temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
 
-                # remove posinfs
-                max_val=temp_depth[temp_depth!=np.inf].max()
-                temp_depth=np.where(temp_depth==np.inf, max_val, temp_depth)
+                # # remove posinfs
+                # max_val=temp_depth[temp_depth!=np.inf].max()
+                # temp_depth=np.where(temp_depth==np.inf, max_val, temp_depth)
 
-                # remove neginfs
-                min_val=temp_depth[temp_depth!=-np.inf].min()
-                temp_depth=np.where(temp_depth==-np.inf, min_val, temp_depth)
+                # # remove neginfs
+                # min_val=temp_depth[temp_depth!=-np.inf].min()
+                # temp_depth=np.where(temp_depth==-np.inf, min_val, temp_depth)
                 
-                temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+                # temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
             
             # np.save("temp_depth.npy", temp_depth)
             # break
@@ -304,11 +309,11 @@ def main(args):
             # print(getMinMax(depth_img))
 
             stabile_distance_matrix = np.arange(12).reshape(2, 2, 3)
-            ros_data=Float64MultiArray()
-            ros_data.data.extend(serialize_graph_raw(np.array([2, 3]), stabile_distance_matrix))
+            # ros_data=Float64MultiArray()
+            # ros_data.data.extend(serialize_graph_raw(np.array([2, 3]), stabile_distance_matrix))
             # stabile_distance_matrix=np.array([0,1,2,3.]).reshape(2, 2, 1)
 
-            pub.publish(ros_data)
+            # pub.publish(ros_data)
 
             key = cv2.waitKey(30) & 0xFF
             #

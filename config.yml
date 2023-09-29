@@ -40,7 +40,7 @@ LABEL_MAP:
   "12": "c"
 
 GRAPHER:
-  EVERY_NTH_ELEMENT: 8
+  EVERY_NTH_ELEMENT: 1
   # SUBSAMPLING_DEGREE: 90
   # MIN_INSIDE: 40
   # SUBSET_INSIDE: 0.0015
@@ -61,6 +61,6 @@ VISIBLE:
 
 # This should be in camera config
 IMG:
-  HEIGHT: 480
+  HEIGHT: 360
   WIDTH: 640
   

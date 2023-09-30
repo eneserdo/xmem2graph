@@ -70,11 +70,11 @@ def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray):
     mask_to_keep = depth[boundaryPoints[:, 1], boundaryPoints[:, 0]] > 1e-4
     boundaryPoints = boundaryPoints[mask_to_keep]
 
-    # Note that boundaryPoints[:, 0] is v (x), boundaryPoints[:, 1] is u (y)
+    # Note that boundaryPoints[:, 0] is u (x), boundaryPoints[:, 1] is v (y)
     boundaryPoints_xyz = convert_from_uvd(boundaryPoints[:, 0], boundaryPoints[:, 1], depth[boundaryPoints[:, 1], boundaryPoints[:, 0]], is_np=True)
     
     # to debug
-    temp_uv = convert_from_xyz(boundaryPoints_xyz[:, 0], boundaryPoints_xyz[:, 1], boundaryPoints_xyz[:, 2], is_np=True)
+    # temp_uv = convert_from_xyz(boundaryPoints_xyz[:, 0], boundaryPoints_xyz[:, 1], boundaryPoints_xyz[:, 2], is_np=True)
 
     # bP_as_coord = []
     # if not addCenterToBoundary:
@@ -102,7 +102,7 @@ def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray):
     #                 bP_as_coord.append(Coord(tempP.item(1), tempP.item(0), depth.item((tempP[0], tempP[1]))))
                 
     # return bP_as_coord
-    return boundaryPoints_xyz
+    return boundaryPoints_xyz, boundaryPoints
 
 
 def mask2InnerPoints(obj_mask: np.ndarray, depth: np.ndarray):

@@ -234,6 +234,7 @@ def main(args):
                 cv2.setMouseCallback('combined', print_coord)
                 cv2.createTrackbar('distance_equality_threshold','combined',100,750,nothing)
                 cv2.createTrackbar('visible_relation_id','combined',0,14,nothing)
+                cv2.createTrackbar('angle','combined', 50, 100,nothing)
                 run_xmem=True
 
                 graphDrawer=GraphDrawer(num_obj=num_objects, fname=fname, beta=0.95)
@@ -251,9 +252,10 @@ def main(args):
                 # print("Centers:", centers)
                 distance_equality_threshold = cv2.getTrackbarPos('distance_equality_threshold','combined')
                 visible_relation_id = cv2.getTrackbarPos('visible_relation_id','combined')
+                angle = cv2.getTrackbarPos('angle','combined')
  
                 start_graph=perf_counter()
-                graphImage, distance_dict, stabile_distance_matrix, ssg = graphDrawer.getGraph(rgb_img, centers, prediction.copy(), distance_equality_threshold, visible_relation_id, depth=depth_img)
+                graphImage, distance_dict, stabile_distance_matrix, ssg = graphDrawer.getGraph(rgb_img, centers, prediction.copy(), distance_equality_threshold, visible_relation_id, depth=depth_img, angle=angle)
                 
                 # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, visible_relation_id)
 

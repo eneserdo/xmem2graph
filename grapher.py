@@ -10,8 +10,8 @@ from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 
 
-from utils import convert_from_uvd, Coord, almost_equal, get_bboxed_image, load_config
-from Mask import mask2BoundaryPoints,  mask2BoundaryPoints, getAvrMinDistBtwPoints, getMinDistBtwPoints
+from utils import convert_from_uvd, Coord, almost_equal, get_bboxed_image, load_config, rotate_points_in_x
+from Mask import mask2BoundaryPoints, getAvrMinDistBtwPoints, getMinDistBtwPoints
 from bimacs_recording import writeForBimacs
 
 
@@ -184,16 +184,16 @@ class GraphDrawer:
  
     @staticmethod
     def _getPCL(graphImage: np.ndarray, object_mask: np.ndarray, depth_img: np.ndarray):
-        allPoints=mask2BoundaryPoints(object_mask, depth_img) #+ mask2InnerPoints(object_mask,depth_img)
+        allPoints_xyz, boundaryPoints=mask2BoundaryPoints(object_mask, depth_img) #+ mask2InnerPoints(object_mask,depth_img)
 
-        filtered_allPoints = allPoints
+        filteredAllPoints_xyz = allPoints_xyz
         # filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
 
         if cfg.VISIBLE.PCL:
-            for p in filtered_allPoints:
-                cv2.circle(graphImage, (p.u, p.v), 1, (20, 100, 90), -1)
+            for p in boundaryPoints:
+                cv2.circle(graphImage, (p[0], p[1]), 2, (20, 100, 90), -1)
         
-        return filtered_allPoints
+        return filteredAllPoints_xyz
 
     def update_cfg(self):
         cfg=load_config("./config.yml")
@@ -217,7 +217,7 @@ class GraphDrawer:
         img_test = cv2.resize(img_test, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
         cv2.imshow("img_test", img_test)
         
-    def getGraph(self, rgb_image, curr_centers: dict, mask, distance_equality_threshold, visible_relation_id, depth):
+    def getGraph(self, rgb_image, curr_centers: dict, mask, distance_equality_threshold, visible_relation_id, depth, angle):
         # Since detailed checking is costly, first check the strict condition; if they are not touching, select candidates
         
         # assert touch_threshold < check_threshold
@@ -228,7 +228,7 @@ class GraphDrawer:
         centers = curr_centers
 
         obj_ids = centers.keys()
-        print("obj_ids:", obj_ids)
+        # print("obj_ids:", obj_ids)
 
         if cfg.VISIBLE.SEGMENTATION:
             # graphImage=cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
@@ -250,7 +250,9 @@ class GraphDrawer:
         avrNumPoints=0
         for id_ in obj_ids:
             # obj_mask = (mask == int(first_id))*1
-            self.pcl_dict[id_]=self._getPCL(graphImage, (mask == int(id_))*1, depth)
+            pcl_temp=self._getPCL(graphImage, (mask == int(id_))*1, depth)
+            pcl_rotated = rotate_points_in_x(pcl_temp, np.pi/180*((angle-50)))
+            self.pcl_dict[id_]=pcl_rotated
             avrNumPoints+=self.pcl_dict[id_].shape[0]
 
             # Also calculate the distance to table
@@ -278,7 +280,7 @@ class GraphDrawer:
         if isinstance(self.past_bounding_boxes, type(None)):
             self.past_bounding_boxes = bounding_boxes
 
-        relation_matrix, distance_matrix = get_relation_matrix(bounding_boxes, self.past_bounding_boxes, 0.0)
+        relation_matrix, distance_matrix = get_relation_matrix(bounding_boxes, self.past_bounding_boxes, distance_equality_threshold)
 
         # update past bounding boxes
         self.past_bounding_boxes = bounding_boxes

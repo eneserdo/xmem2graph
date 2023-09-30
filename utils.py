@@ -439,7 +439,7 @@ def add_text_to_image(
 
 
 def getRotationMatrix(w0: np.ndarray, theta: float = None):
-    """Calculates rotation matrix using Rodrigue's formula (norm of the w is assigned to theta)"""
+    """Calculates rotation matrix using Rodrigue's formula (norm of the w is assigned to theta if theta is None)"""
     # FIXME modifies the w implicitly
 
     if theta is None:
@@ -474,13 +474,16 @@ def homogeneousMultiplication(A, x):
     return x.T
 
 
-def rotate_points_in_x(points, theta=-20):
+def rotate_points_in_x(points, theta):
     """points.shape = [N, 3]"""
+    mean = np.mean(points, 0)
+    points=points-mean
+
     R = getRotationMatrix(np.array([1, 0, 0]), theta)
     A = np.identity(4)
     A[:3, :3] = R
 
-    return homogeneousMultiplication(A, points)
+    return homogeneousMultiplication(A, points)+mean
 
 
 def get_bboxed_image(image, bbox_list):

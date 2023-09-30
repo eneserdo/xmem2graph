@@ -114,32 +114,32 @@ def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
             
             # left of and right of:
             if subject_bb[1] < object_bb[0]:
-                relation_matrix[subject_idx, object_idx, RELATION('left of')] = 1
-                relation_matrix[object_idx, subject_idx, RELATION('right of')] = 1
-
-            elif subject_bb[0] > object_bb[1]:
                 relation_matrix[subject_idx, object_idx, RELATION('right of')] = 1
                 relation_matrix[object_idx, subject_idx, RELATION('left of')] = 1
 
+            elif subject_bb[0] > object_bb[1]:
+                relation_matrix[subject_idx, object_idx, RELATION('left of')] = 1
+                relation_matrix[object_idx, subject_idx, RELATION('right of')] = 1
+
             # above and below:
             if subject_bb[3] < object_bb[2]:
-                relation_matrix[subject_idx, object_idx, RELATION('below')] = 1
-                relation_matrix[object_idx, subject_idx, RELATION('above')] = 1
-
-            elif subject_bb[2] > object_bb[3]:
                 relation_matrix[subject_idx, object_idx, RELATION('above')] = 1
                 relation_matrix[object_idx, subject_idx, RELATION('below')] = 1
+
+            elif subject_bb[2] > object_bb[3]:
+                relation_matrix[subject_idx, object_idx, RELATION('below')] = 1
+                relation_matrix[object_idx, subject_idx, RELATION('above')] = 1
             
             # behind of and in front of:
             if subject_bb[5] < object_bb[4]:
-                relation_matrix[subject_idx, object_idx, RELATION('behind of')] = 1
-                relation_matrix[object_idx, subject_idx, RELATION('in front of')] = 1
-            
-            elif subject_bb[4] > object_bb[5]:
                 relation_matrix[subject_idx, object_idx, RELATION('in front of')] = 1
                 relation_matrix[object_idx, subject_idx, RELATION('behind of')] = 1
             
-            # inside and surround:x
+            elif subject_bb[4] > object_bb[5]:
+                relation_matrix[subject_idx, object_idx, RELATION('behind of')] = 1
+                relation_matrix[object_idx, subject_idx, RELATION('in front of')] = 1
+            
+            # inside and surround:
             if subject_bb[0] >= object_bb[0] and subject_bb[1] <= object_bb[1] and \
                subject_bb[2] >= object_bb[2] and subject_bb[3] <= object_bb[3] and \
                subject_bb[4] >= object_bb[4] and subject_bb[5] <= object_bb[5]:
@@ -159,6 +159,7 @@ def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
             subject_past_bb = past_bbox_list[subject_idx]
             object_past_bb = past_bbox_list[object_idx]
             
+            # TODO: check if the -1 is the correct way to handle this
             if np.allclose(subject_past_bb, -1) or np.allclose(object_past_bb, -1):
                 continue
 

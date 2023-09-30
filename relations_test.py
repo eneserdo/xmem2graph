@@ -10,7 +10,7 @@ RELATION_LIST = ['contact', 'above', 'below', 'left of', 'right of', 'behind of'
                  'getting close', 'moving apart', 'stable']
 
 # RELATIONS_TO_CHECK = ['contact', 'above', 'below', 'left of', 'right of', 'behind of', 'in front of']
-RELATIONS_TO_CHECK = ['above', 'below']
+RELATIONS_TO_CHECK = ['moving apart']
 
 
 def relation_tensor_to_set(relation_matrix, obj_names):
@@ -66,7 +66,7 @@ def checkMyImplementation(base_dir, subject, task, take, i):
         pbb=obj["past_bounding_box"]
         past_bbox[i]=np.array([pbb["x0"], pbb["x1"], pbb["y0"], pbb["y1"], pbb["z0"], pbb["z1"]])
         
-    rels_predicted_mat, _=get_relation_matrix(bbox, past_bbox, 20)
+    rels_predicted_mat, _=get_relation_matrix(bbox, past_bbox, 30)
     rels_predicted=relation_tensor_to_set(rels_predicted_mat, obj_names)
     
     if set(rels_predicted) != rels:
@@ -74,9 +74,10 @@ def checkMyImplementation(base_dir, subject, task, take, i):
         print("gt: ", "\n".join(list(rels)))
         
         print("*******************")
+        return False
     else:
         print("True positive")
         print("*******************")
-
+        return True
 
 checkMyImplementation("/home/enerd/bimanual", "subject_1", "task_1_k_cooking", "take_0", 10)

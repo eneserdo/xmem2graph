@@ -27,6 +27,7 @@ def distance_btw_bb(bbox_a, bbox_b):
     cax = (bbox_a[1] + bbox_a[0]) / 2
     cay = (bbox_a[3] + bbox_a[2]) / 2
     caz = (bbox_a[5] + bbox_a[4]) / 2
+    
     cbx = (bbox_b[1] + bbox_b[0]) / 2
     cby = (bbox_b[3] + bbox_b[2]) / 2
     cbz = (bbox_b[5] + bbox_b[4]) / 2
@@ -86,14 +87,13 @@ def get_pcl_to_bbox(pointcloud_dict, N):
 
 def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
     # bbox_list: N x 6 : [x0, x1, y0, y1, z0, z1]
-    # ignore_mask: N x 1 : 1 if the object is not visible, 0 otherwise
 
     # Assumes that the objects are ordered in the same way in both bbox_list and past_bbox_list and they are the same objects. 
     # If an object is not visible, the corresponding row in bbox_list/past_bbox_list should be -1
 
-    relation_matrix = np.zeros((len(bbox_list), len(bbox_list), len(RELATION_LIST)))
-    distance_matrix = np.zeros((len(bbox_list), len(bbox_list)))
     N=len(bbox_list)
+    relation_matrix = np.zeros((N, N, len(RELATION_LIST)))
+    distance_matrix = np.zeros((N, N))
     
     # Static relations
     for subject_idx in range(N):        
@@ -102,6 +102,7 @@ def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
             subject_bb = bbox_list[subject_idx]
             object_bb = bbox_list[object_idx]
 
+            # TODO: check if the -1 is the correct way to handle this
             if np.allclose(subject_bb, -1) or np.allclose(object_bb, -1):
                 continue
 
@@ -169,8 +170,10 @@ def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
             distance_matrix[subject_idx, object_idx] = delta_so
             distance_matrix[object_idx, subject_idx] = delta_so
 
+            # Şimdi de geçmişte de temas ediyorlar
             p1 = IS_CONTACTING(subject_bb, object_bb) and IS_CONTACTING(subject_past_bb, object_past_bb)
 
+            # Şimdi de geçmişte de temas etmiyorlar
             p2 = not IS_CONTACTING(subject_bb, object_bb) and not IS_CONTACTING(subject_past_bb, object_past_bb)
 
             if p1:

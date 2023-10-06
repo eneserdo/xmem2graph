@@ -159,6 +159,7 @@ def main(args):
             # if cfg.CAMERA_NAME=="ZED":
             temp_rgb=np.load(rgb_path)
             temp_depth=np.load(depth_path)
+            print(".", end="", flush=True)
                 # # remove nans
                 # temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
 

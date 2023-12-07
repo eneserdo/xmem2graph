@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 from utils import convert_from_uvd, Coord, almost_equal, get_bboxed_image, load_config, rotate_points_in_x
-from Mask import mask2BoundaryPoints, getAvrMinDistBtwPoints, getMinDistBtwPoints
+from Mask import mask2AllPoints, mask2BoundaryPoints, getAvrMinDistBtwPoints, getMinDistBtwPoints, mask2InnerPoints
 from bimacs_recording import writeForBimacs
 
 
@@ -184,16 +184,19 @@ class GraphDrawer:
  
     @staticmethod
     def _getPCL(graphImage: np.ndarray, object_mask: np.ndarray, depth_img: np.ndarray):
-        allPoints_xyz, boundaryPoints=mask2BoundaryPoints(object_mask, depth_img) #+ mask2InnerPoints(object_mask,depth_img)
+        # allPoints_xyz, points_uv=mask2BoundaryPoints(object_mask, depth_img) #+ mask2InnerPoints(object_mask,depth_img)
+        allPoints_xyz, points_uv = mask2AllPoints(object_mask, depth_img)
+        # allPoints_xyz, points_uv = mask2InnerPoints(object_mask, depth_img)
 
-        filteredAllPoints_xyz = allPoints_xyz
+        # Filtreleme işlemi yukarda yapıldı
+        # filtered_points_xyz = allPoints_xyz
         # filtered_allPoints = [point for point in allPoints if not almost_equal(point.d, 0)]
 
         if cfg.VISIBLE.PCL:
-            for p in boundaryPoints:
+            for p in points_uv:
                 cv2.circle(graphImage, (p[0], p[1]), 2, (20, 100, 90), -1)
         
-        return filteredAllPoints_xyz
+        return allPoints_xyz
 
     def update_cfg(self):
         cfg=load_config("./config.yml")
@@ -358,7 +361,7 @@ class SimpleStableGraph:
             "node_color": "white",
             "edgecolors": "black",
             "linewidths": 1.4,
-            "width": 1.4,
+            "width": 1.4
         }
         
         self.frame_num=0
@@ -376,7 +379,7 @@ class SimpleStableGraph:
                 self.objNames.append(str(i))
 
 
-        self.G=nx.empty_graph(self.objNames)
+        self.G=nx.empty_graph(self.objNames, default=nx.DiGraph)
         self.pos = nx.circular_layout(self.G)
 
 

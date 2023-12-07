@@ -26,14 +26,14 @@ KINECT:
 
 
 LABEL_MAP:
-  "1": "LeftHand"
-  "2": "RightHand"
-  "3": "cuttingboard"
-  "4": "banana"
-  "5": "knife"
-  "6": "bowl" 
-  "7": "bowl" 
-  "8": "table" 
+  "1": "bowl" 
+  "2": "knife"
+  "3": "spoon"
+  "4": "banana" 
+  "5": "cuttingboard"
+  "6": "RightHand"
+  "7": "LeftHand" 
+  "8": "y" 
   "9": "x"
   "10": "a"
   "11": "b"
@@ -52,7 +52,7 @@ SIMPLEGRAPH:
 
 VISIBLE:
   CENTER_COORDS: False
-  PCL: True
+  PCL: False
   MASK: True
   MIN_DIST: False
   SEGMENTATION: True

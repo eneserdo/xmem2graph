@@ -105,15 +105,42 @@ def mask2BoundaryPoints(obj_mask: np.ndarray, depth: np.ndarray):
     return boundaryPoints_xyz, boundaryPoints
 
 
-def mask2InnerPoints(obj_mask: np.ndarray, depth: np.ndarray):
-    points_v, points_u = np.where(obj_mask*5 > 1)
-    points = np.concatenate([points_v.reshape(-1, 1), points_u.reshape(-1, 1)], axis=1)
+def mask2AllPoints(obj_mask: np.ndarray, depth: np.ndarray):
+    """
+        Returns every point in the object mask as xyz
+    """
 
-    # subset = np.random.choice(len(points), max(int(len(points)*cfg.GRAPHER.SUBSET_INSIDE), cfg.GRAPHER.MIN_INSIDE))
-    subset = np.random.choice(len(points), cfg.GRAPHER.MIN_INSIDE)
-    points_subset = points[subset]
-    points_subset = arrayAndDepthToCoord(points_subset, depth)
-    return points_subset
+    points_v, points_u = np.where(obj_mask*5 > 1)
+    points_uv = np.concatenate([points_u.reshape(-1, 1), points_v.reshape(-1, 1)], axis=1)
+
+    # filter out points with depth close to 0
+    mask_to_keep = depth[points_uv[:, 1], points_uv[:, 0]] > 1e-4
+    points_uv = points_uv[mask_to_keep]
+
+    points_xyz = convert_from_uvd(points_uv[:, 0], points_uv[:, 1], depth[points_uv[:, 1], points_uv[:, 0]], is_np=True)
+
+    return points_xyz, points_uv
+
+
+def mask2InnerPoints(obj_mask: np.ndarray, depth: np.ndarray):
+
+    points_v, points_u = np.where(obj_mask*5 > 1)
+    points_uv = np.concatenate([points_u.reshape(-1, 1), points_v.reshape(-1, 1)], axis=1)
+
+    mask_to_keep = depth[points_uv[:, 1], points_uv[:, 0]] > 1e-4
+    points_uv = points_uv[mask_to_keep]
+    
+    if len(points_uv) < cfg.GRAPHER.MIN_INSIDE:
+        return points_uv
+    
+    # take a random subset of points
+    subset = np.random.choice(len(points_uv), cfg.GRAPHER.MIN_INSIDE)
+    points_uv = points_uv[subset]
+
+
+    points_xyz = convert_from_uvd(points_uv[:, 0], points_uv[:, 1], depth[points_uv[:, 1], points_uv[:, 0]], is_np=True)
+
+    return points_xyz, points_uv
 
 
 def _mask2SingleCenter(pred, depth):

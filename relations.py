@@ -84,7 +84,7 @@ def get_pcl_to_bbox(pointcloud_dict, N):
     return bboxes
 
 
-def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
+def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold, obj_list):
     # bbox_list: N x 6 : [x0, x1, y0, y1, z0, z1]
     # ignore_mask: N x 1 : 1 if the object is not visible, 0 otherwise
 
@@ -171,7 +171,7 @@ def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
 
             p1 = IS_CONTACTING(subject_bb, object_bb) and IS_CONTACTING(subject_past_bb, object_past_bb)
 
-            p2 = not IS_CONTACTING(subject_bb, object_bb) and not IS_CONTACTING(subject_past_bb, object_past_bb)
+            p2 = (not IS_CONTACTING(subject_bb, object_bb)) and (not IS_CONTACTING(subject_past_bb, object_past_bb))
 
             if p1:
 
@@ -182,7 +182,7 @@ def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
                     relation_matrix[subject_idx, object_idx, RELATION('moving together')] = 1
                     relation_matrix[object_idx, subject_idx, RELATION('moving together')] = 1
                 
-                elif not p3 and not p4:
+                elif (not p3) and (not p4):
                     relation_matrix[subject_idx, object_idx, RELATION('halting together')] = 1
                     relation_matrix[object_idx, subject_idx, RELATION('halting together')] = 1
                 
@@ -191,7 +191,7 @@ def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
                     relation_matrix[object_idx, subject_idx, RELATION('fixed moving together')] = 1
             
             elif p2:
-                if delta_so - delta_so_past < -distance_equality_threshold:
+                if delta_so - delta_so_past < - distance_equality_threshold:
                     relation_matrix[subject_idx, object_idx, RELATION('getting close')] = 1
                     relation_matrix[object_idx, subject_idx, RELATION('getting close')] = 1
                 

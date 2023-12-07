@@ -1,0 +1,12 @@
+preds:  whisk - moving apart - RightHand
+RightHand - moving apart - bowl
+RightHand - moving apart - LeftHand
+bowl - moving apart - RightHand
+LeftHand - moving apart - RightHand
+RightHand - moving apart - bottle
+bottle - moving apart - RightHand
+RightHand - moving apart - whisk
+*****
+gt:  RightHand - moving apart - bottle
+bottle - moving apart - RightHand
+*******************

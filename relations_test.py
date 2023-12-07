@@ -66,18 +66,20 @@ def checkMyImplementation(base_dir, subject, task, take, i):
         pbb=obj["past_bounding_box"]
         past_bbox[i]=np.array([pbb["x0"], pbb["x1"], pbb["y0"], pbb["y1"], pbb["z0"], pbb["z1"]])
         
-    rels_predicted_mat, _=get_relation_matrix(bbox, past_bbox, 30)
+    rels_predicted_mat, _ = get_relation_matrix(bbox, past_bbox, 30, obj_names)
     rels_predicted=relation_tensor_to_set(rels_predicted_mat, obj_names)
     
     if set(rels_predicted) != rels:
         print("preds: ", "\n".join(list(rels_predicted)))
+        print("*****")
         print("gt: ", "\n".join(list(rels)))
-        
         print("*******************")
         return False
     else:
         print("True positive")
+        print("gt: ", "\n".join(list(rels)))
         print("*******************")
         return True
 
-checkMyImplementation("/home/enerd/bimanual", "subject_1", "task_1_k_cooking", "take_0", 10)
+
+checkMyImplementation("/home/cak/enes/bimanual/bimacs_rgbd_data", "subject_1", "task_1_k_cooking", "take_0", 10)

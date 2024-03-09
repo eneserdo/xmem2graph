@@ -268,7 +268,7 @@ class GraphDrawer:
             # else:
             #     distance_dict["*"+cfg.LABEL_MAP[str(id_)]+" to table"]=tempDist
 
-        print("Average selected points: ", avrNumPoints/len(self.pcl_dict))
+        # print("Average selected points: ", avrNumPoints/len(self.pcl_dict))
 
         
         # NEW

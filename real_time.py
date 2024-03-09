@@ -6,7 +6,7 @@ import torch
 # import torch.nn.functional as F
 # from torch.utils.data import DataLoader
 import numpy as np
-from time import perf_counter, localtime, time
+from time import perf_counter, localtime, sleep, time
 import subprocess
 import glob
 from datetime import datetime
@@ -90,6 +90,51 @@ def nothing(x):
     pass
 
 
+def encapsulated_loop(from_folder=False, **kwargs):
+    """ To use either rosbag and or files from folder """
+    if from_folder:
+        for temp_rgb, temp_depth in kwargs["rosrunner"].frameGenerator():
+            print(".", end="", flush=True)
+        
+            if cfg.CAMERA_NAME=="ZED":
+                # # remove nans
+                temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
+
+                # # remove posinfs
+                max_val=temp_depth[temp_depth!=np.inf].max()
+                temp_depth=np.where(temp_depth==np.inf, max_val, temp_depth)
+
+                # # remove neginfs
+                min_val=temp_depth[temp_depth!=-np.inf].min()
+                temp_depth=np.where(temp_depth==-np.inf, min_val, temp_depth)
+                
+                temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+                
+            yield temp_rgb, temp_depth
+    
+    else:
+        # Maybe natsort is required !!
+        rgb_dir=os.path.join(kwargs["rgb_dir"], "*.png")
+        rgb_files=sorted(glob.glob(rgb_dir))
+        
+        depth_dir = os.path.join(kwargs["depth_dir"], "*.npy")
+        depth_files=sorted(glob.glob(depth_dir))
+
+
+        assert len(rgb_files) > 0, f"No png available in {rgb_dir}"
+        assert len(depth_files) > 0, f"No npy available in {depth_dir}"
+
+
+        for rgb_f, depth_f in zip(rgb_files, depth_files):
+            
+            temp_depth=np.load(depth_f)
+            temp_rgb=cv2.imread(rgb_f, -1)
+
+            yield temp_rgb, temp_depth
+            
+
+
+
 def main(args):
     global depth_img, tableRelation, cfg
     torch.set_grad_enabled(False)
@@ -150,50 +195,13 @@ def main(args):
 
         counter=0
 
-        # FOR ROS BAGS
-        # for temp_rgb, temp_depth in rosrunner.frameGenerator():
-        rgb_files=sorted(glob.glob("/home/enerd/new_test_bimanual_rosbags/bimanual_test_data_1_images/rgb/*.npy"))
-        depth_files=sorted(glob.glob("/home/enerd/new_test_bimanual_rosbags/bimanual_test_data_1_images/depth/*.npy"))
+        RGB_DIR = "/home/cak/enes/dl_action_dataset/stir3_*/rgb"
+        DEPTH_DIR = "/home/cak/enes/dl_action_dataset/stir3_*/depth"
 
-        for rgb_path, depth_path in zip(rgb_files, depth_files):
-            # if cfg.CAMERA_NAME=="ZED":
-            temp_rgb=np.load(rgb_path)
-            temp_depth=np.load(depth_path)
-            print(".", end="", flush=True)
-                # # remove nans
-                # temp_depth=np.where(np.isnan(temp_depth), 0, temp_depth)
-
-                # # remove posinfs
-                # max_val=temp_depth[temp_depth!=np.inf].max()
-                # temp_depth=np.where(temp_depth==np.inf, max_val, temp_depth)
-
-                # # remove neginfs
-                # min_val=temp_depth[temp_depth!=-np.inf].min()
-                # temp_depth=np.where(temp_depth==-np.inf, min_val, temp_depth)
-                
-                # temp_rgb=temp_rgb[:,:,:-1] # To exclude alpha channel
+        # for temp_rgb, temp_depth in encapsulated_loop(from_folder=True, rosrunner=RosRun()):
+        for temp_rgb, temp_depth in encapsulated_loop(from_folder=False, rgb_dir=RGB_DIR, depth_dir=DEPTH_DIR):
             
-            # np.save("temp_depth.npy", temp_depth)
-            # break
-
-        # # # # # # # # # #
-
-        # FOR IMAGE FOLDERS
-        # rgb_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/rgb/*.png"))
-        # depth_files=sorted(glob.glob("/home/enerd/xmem2graph/rosdata/aralik_cut/depth/*.npy"))
-        # # rgb_files=sorted(glob.glob("rosdata/aralik_stir/rgb/*.png"))
-        # # depth_files=sorted(glob.glob("rosdata/aralik_stir/depth/*.npy"))
-
-        # for rgb_path, depth_path in zip(rgb_files, depth_files):
-        #     temp_rgb=cv2.imread(rgb_path, -1)
-        #     temp_rgb=cv2.resize(temp_rgb, (640, 360))
-            # temp_depth=cv2.imread(depth_path, -1)
-            # counter+=1
-            # print(counter, "/", len(rgb_files))
-
-            # temp_rgb=np.load(rgb_path)
-            # temp_depth=np.load(depth_path)
-        # # # # # # # # # #
+            sleep(0.1)
 
             timer.start()
 
@@ -261,7 +269,7 @@ def main(args):
                 # graphDrawer._testProximity(rgb_img, depth_img, (prediction==1)*1, visible_relation_id)
 
                 putNames(graphImage, centers)
-                print("graph time:", round(perf_counter()-start_graph, 3))
+                # print("graph time:", round(perf_counter()-start_graph, 3))
                 
                 visualization = overlay_davis(rgb_img, prediction)  # frame:=img1
                 # visualization = cv2.putText(visualization, f"FPS: {fps}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)

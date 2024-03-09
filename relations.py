@@ -72,7 +72,7 @@ def get_pcl_to_bbox(pointcloud_dict, N):
                 mins = np.min(pcl_T, axis=1)
                 maxs = np.max(pcl_T, axis=1)
             except:
-                print(f"Probably no point is selected", idx+1)
+                # print(f"Probably no point is selected", idx+1)
                 bboxes[idx] = 0
                 continue
 
@@ -85,7 +85,7 @@ def get_pcl_to_bbox(pointcloud_dict, N):
     return bboxes
 
 
-def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold, obj_list):
+def get_relation_matrix(bbox_list, past_bbox_list, distance_equality_threshold):
     # bbox_list: N x 6 : [x0, x1, y0, y1, z0, z1]
 
     # Assumes that the objects are ordered in the same way in both bbox_list and past_bbox_list and they are the same objects. 
